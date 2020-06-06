@@ -82,39 +82,88 @@ typedef uint8 AddressingFormatType;
 
 extern MaxSegSize;
 
+/**************** CanTpTxNSdu Struct ****************/
 typedef struct
-{
-    const float64                CanTpNas;
-    const float64                CanTpNbs;
-    const float64                CanTpNcs;
-          boolean                CanTpTc;
-          uint16                 CanTpTxNSduId;
-    const uint8                  CanTpTxPaddingActivation;
-          uint8                  CanTpTxTaType;
-          uint16                 CanTpTxNPduConfirmationPduId;
-          uint16                 CanTpRxFcNPduId;
+{	
+    const float64                CanTpNas;                     /* Value in second of the N_As timeout. N_As is the time for transmission of
+                                                                  a CAN frame (any N_PDU) on the part of the sender. */
+											                     
+    const float64                CanTpNbs;                     /* Value in seconds of the N_Bs timeout. N_Bs is the time of transmission
+                                                                  until reception of the next Flow Control N_PDU */
+											                       
+    const float64                CanTpNcs;                     /* Value in seconds of the performance requirement of (N_Cs + N_As).
+                                                                  N_Cs is the time in which CanTp is allowed to request the Tx data of a
+                                                                  Consecutive Frame N_PDU. */
+											                       
+          boolean                CanTpTc;                      /* Switch for enabling Transmit Cancellation. */
+		  
+          uint16                 CanTpTxNSduId;                /* Unique identifier to a structure that contains all useful information to
+                                                                  process the transmission of a TxNsdu. */
+																  
+    const uint8                  CanTpTxPaddingActivation;     /* Defines if the transmit frame use padding or not. This parameter is restricted 
+	                                                              to 8 byte N-PDUs. Definition of Enumeration values ( CANTP_OFF & CANTP_ON) */
 
-          uint8                  CanTpTxChannel;	//Should be removed and channel list is created instead
+          uint8                  CanTpTxTaType;                /* Declares the communication type of this TxNsdu.
+		                                                          Enumeration values: (CANTP_FUNCTIONAL & CANTP_PHYSICAL) */
+																  
+          uint16                 CanTpTxNPduConfirmationPduId; /* Handle Id to be used by the CanIf to confirm the transmission of the
+                                                                  CanTpTxNPdu to the CanIf module */
+																  
+          uint16                 CanTpRxFcNPduId;              /* N-PDU identifier attached to the FC N-PDU of this TxNsdu 
+                                                                  Each TxNsdu identifier is linked to one Rx FC N-PDU identifier only.
+                                                                  However, in the case of extended addressing format, the same FC N-PDU
+                                                                  identifier can be used for several N-SDU identifiers. The distinction is
+                                                                  made by means of the N_TA value (first data byte of FC frames) */
+
+          uint8                  CanTpTxChannel;	          //Should be removed and channel list is created instead
 }CanTpTxNSdu;
 
+/**************** CanTpRxNSduType Struct ****************/
 typedef struct
 {
-	const uint8                  CanTpBs ;
-	const float64                CanTpSTmin;
-	const uint16                 CanTpRxWftMax;
-    const float64                CanTpNar;
-    const float64                CanTpNbr;
-    const float64                CanTpNcr;
-          uint16                 CanTpRxNSduId;
-          uint16                 CanTpRxNPduId;
-    const uint8                  CanTpRxPaddingActivation;
-          uint8                  CanTpRxTaType;
-	      uint16                 CanTpTxFcNPduConfirmationPduId;
-          uint16                 CanTpRxFcNPduId;
+	const uint8                  CanTpBs ;                     /* Sets the number of N-PDUs the CanTp receiver allows the sender to send, before
+                                                                 waiting for an authorization to continue transmission of the following  N-PDUs.*/
+																 
+	const float64                CanTpSTmin;                   /* Sets the duration of the minimum time the CanTp sender shall wait
+                                                                  between the transmissions of two CF N-PDUs.*/
+																  
+	const uint16                 CanTpRxWftMax;                /* his parameter indicates how many Flow Control wait N-PDUs can be consecutively 
+                                                                  transmitted by the receiver. It is local to the node and is not  transmitted 
+                                                                  inside the FC protocol data unit ,it is used to avoid sender nodes being potentially
+																  hookedup in case of a temporarily reception inability on the part of the receiver nodes,
+																  whereby the sender could be waiting continuously. */
+																  
+    const float64                CanTpNar;                     /* Value in seconds of the N_Ar timeout. N_Ar is the time for transmission of
+                                                                  a CAN frame (any N_PDU) on the receiver side */
+															 	  
+    const float64                CanTpNbr;                     /* Value in seconds of the N_Cr timeout. N_Cr is the time until reception of
+                                                                  the next Consecutive Frame N_PDU */
+																  
+    const float64                CanTpNcr;                     /* Value in seconds of the N_Cr timeout. N_Cr is the time until reception of
+                                                                  the next Consecutive Frame N_PDU. */
+																  
+          uint16                 CanTpRxNSduId;                /* Unique identifier user by the upper layer to call CanTp_CancelReceive,
+                                                                  CanTp_ChangeParameter and CanTp_ReadParameter. */
+																  
+          uint16                 CanTpRxNPduId;                 /* The N-PDU identifier attached to the RxNsdu is identified by CanTpRxNSduId.
+                                                                   Each RxNsdu identifier is linked to only one SF/FF/CF N-PDU identifier.
+                                                                   Nevertheless, in the case of extended or mixed addressing format, the
+                                                                   same N-PDU identifier can be used for several N-SDU identifiers. The
+                                                                   distinction is made by the N_TA or N_AE value (first data byte of SF or FF frames).*/
+																   
+    const uint8                  CanTpRxPaddingActivation;     /* Defines if the receive frame uses padding or not. This parameter is restricted to 
+	                                                              8 byte N-PDUs. Definition of enumeration values ( CANTP_OFF & CANTP_ON) */
+																  
+          uint8                  CanTpRxTaType;                /* Declares the communication type of this Rx N-SDU 
+		                                                          Definition of enumeration values ( CANTP_FUNCTIONAL & CANTP_PHYSICAL) */
+		  
+	      uint16                 CanTpTxFcNPduConfirmationPduId; /* Handle Id to be used by the CanIf to confirm the transmission of the
+                                                                    CanTpTxFcNPdu to the CanIf module. */
 
-          uint8                  CanTpRxChannel;  //Should be removed and channel list is created instead
-}CanTpRxNSduType;
+          uint8                  CanTpRxChannel;               //Should be removed and channel list is created instead
+}CanTpRxNSdu;
 
+/**************** RunTimeInfo Struct ****************/
 typedef struct
 {
 	boolean                       initRun;
