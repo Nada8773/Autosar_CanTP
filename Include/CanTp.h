@@ -21,10 +21,7 @@
 
 #include "ComStack_Types.h"
 
-#ifndef CanFD
-#define MAX_SEGMENT_DATA_SIZE       8
-#else   MAX_SEGMENT_DATA_SIZE      64
-#endif
+#define SEGMENT_NUMBER_MASK                                                  (uint8)0x0F
 
 typedef uint8 CanTp_TransferInstanceMode;
 #define CANTP_RX_WAIT				                    (CanTp_TransferInstanceMode)0x00
@@ -52,56 +49,71 @@ typedef uint8 TransferStateTypes;
 #define TX_WAIT_FLOW_CONTROL									(TransferStateTypes)0x07
 #define TX_WAIT_TX_CONFIRMATION									(TransferStateTypes)0x08
 
+typedef uint8 ChannelModeType;
+#define CANTP_MODE_FULL_DUPLEX                                     (ChannelModeType)0x00
+#define CANTP_MODE_HALF_DUPLEX                                     (ChannelModeType)0x01
+
+#if 0
+typedef uint8 TaType;
+#define CANTP_FUNCTIONAL                                                    (TaType)0x00
+#define CANTP_PHYSICAL                                                      (TaType)0x01
+#endif
+
+#if 0
 typedef uint8 AddressingFormatType;
 #define CANTP_EXTENDED                                        (AddressingFormatType)0x00
 #define CANTP_MIXED                                           (AddressingFormatType)0x01
 #define CANTP_MIXED29BIT                                      (AddressingFormatType)0x02
 #define CANTP_NORMALFIXED                                     (AddressingFormatType)0x03
 #define CANTP_STANDARD                                        (AddressingFormatType)0x04
+#endif
 
-typedef uint8 ChannelModeType;
-#define CANTP_MODE_FULL_DUPLEX                                     (ChannelModeType)0x00
-#define CANTP_MODE_HALF_DUPLEX                                     (ChannelModeType)0x01
+#define ISO15765_TPCI_MASK      		                                     (uint8)0x30
+#define ISO15765_TPCI_SF        		                                     (uint8)0x00  /* Single Frame */
+#define ISO15765_TPCI_FF        		                                     (uint8)0x10  /* First Frame */
+#define ISO15765_TPCI_CF        		                                     (uint8)0x20  /* Consecutive Frame */
+#define ISO15765_TPCI_FC        		                                     (uint8)0x30  /* Flow Control */
+#define ISO15765_TPCI_DL        		                                     (uint8)0x07  /* Single frame data length mask */
 
-typedef uint8 TaType;
-#define CANTP_FUNCTIONAL
-#define CANTP_PHYSICAL
+#define ISO15765_TPCI_FS_MASK   			                                 (uint8)0x0F  /* FlowControl status mask */
+#define ISO15765_FLOW_CONTROL_STATUS_CTS                                     (uint8)0x00  /* FC Clear/Continue To Send Status */
+#define ISO15765_FLOW_CONTROL_STATUS_WAIT                                    (uint8)0x01  /* FC Waiting Status */
+#define ISO15765_FLOW_CONTROL_STATUS_OVFLW                                   (uint8)0x02  /* FC OverFlows Status */
 
+extern MaxSegSize;
 
 typedef struct
 {
-    const float64 CanTpNas;
-    const float64 CanTpNbs;
-    const float64 CanTpNcs;
-          boolean CanTpTc;
-          uint8   CanTpTxAddressingFormat;
-          uint16  CanTpTxNSduId;
-    const uint8   CanTpTxPaddingActivation;
-          uint8   CanTpTxTaType;
-          uint16  CanTpTxNPduConfirmationPduId;
-          uint16  CanTpRxFcNPduId;
+    const float64                CanTpNas;
+    const float64                CanTpNbs;
+    const float64                CanTpNcs;
+          boolean                CanTpTc;
+          uint16                 CanTpTxNSduId;
+    const uint8                  CanTpTxPaddingActivation;
+          uint8                  CanTpTxTaType;
+          uint16                 CanTpTxNPduConfirmationPduId;
+          uint16                 CanTpRxFcNPduId;
 
-          uint8  CanTpTxChannel;	//Should be removed and channel list is created instead
+          uint8                  CanTpTxChannel;	//Should be removed and channel list is created instead
 }CanTpTxNSdu;
 
 typedef struct
 {
-	const uint8   CanTpBs ;
-	const float64 CanTpSTmin;
-	const uint16  CanTpRxWftMax;
-    const float64 CanTpNar;
-    const float64 CanTpNbr;
-    const float64 CanTpNcr;
-          uint8   CanTpTxAddressingFormat;
-          uint16  CanTpRxNSduId;
-          uint16  CanTpRxNPduId;
-    const uint8   CanTpRxPaddingActivation;
-          uint8   CanTpRxTaType;
-	      uint16  CanTpTxFcNPduConfirmationPduId;
-          uint16  CanTpRxFcNPduId;
+	const uint8                  CanTpBs ;
+	const float64                CanTpSTmin;
+	const uint16                 CanTpRxWftMax;
+    const float64                CanTpNar;
+    const float64                CanTpNbr;
+    const float64                CanTpNcr;
+          uint16                 CanTpRxNSduId;
+          uint16                 CanTpRxNPduId;
+    const uint8                  CanTpRxPaddingActivation;
+          uint8                  CanTpRxTaType;
+	      uint16                 CanTpTxFcNPduConfirmationPduId;
+          uint16                 CanTpRxFcNPduId;
 
-          uint8   CanTpRxChannel;  //Should be removed and channel list is created instead
-}CanTp_RXNSduType;
+          uint8                  CanTpRxChannel;  //Should be removed and channel list is created instead
+}CanTpRxNSduType;
 
 typedef struct
 {
@@ -120,13 +132,26 @@ typedef struct
 	uint32                        transferCount;
 	uint32                        availableDataSize;
 	PduLengthType                 IFByteCount;
-	PduLengthType                 IFdata[MAX_SEGMENT_DATA_SIZE];
+	PduLengthType                 IFdata[MaxSegSize];
 	CanTp_TransferInstanceMode    mode;
 	uint32                        Buffersize;
 
 }RunTimeInfo;
 
-/**************************** Functions Prototype ******************************************/
+
+/**************************** Function-Like Macros ******************************************/
+
+#define TIMER_DECREMENT(timer) \
+        if (timer > 0) { \
+            timer = timer - 1; \
+        } \
+
+#define COUNT_DECREMENT(count) \
+        if (count > 0) { \
+            count = count - 1; \
+        } \
+
+/**************************** AUTOSAR-Compliant APIs' Prototypes ******************************************/
 
 void CanTp_Init(const CanTp_ConfigType* CfgPtr);
 void CanTp_GetVersionInfo(Std_VersionInfoType* versioninfo);
