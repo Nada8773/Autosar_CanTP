@@ -26,6 +26,21 @@
 #define CANTP_OFF                                       0U
 #define CANTP_ON                                        1U
 
+/* Runtime Errors */
+#define CANTP_E_PARAM_CONFIG                            0x01
+#define CANTP_E_PARAM_ID                                0x02
+#define CANTP_E_PARAM_POINTER                           0x03
+#define CANTP_E_INIT_FAILED                             0x04
+#define CANTP_E_UNINIT                                  0x20
+#define CANTP_E_INVALID_TX_ID                           0x30
+#define CANTP_E_INVALID_RX_ID                           0x40
+#define CANTP_E_PADDING                                 0x70
+#define CANTP_E_INVALID_TATYPE                          0x90
+#define CANTP_E_OPER_NOT_SUPPORTED                      0xA0
+#define CANTP_E_COM                                     0xB0
+#define CANTP_E_RX_COM                                  0xC0
+#define CANTP_E_TX_COM                                  0xD0
+
 typedef uint8 CanTp_TransferInstanceMode;
 #define CANTP_RX_WAIT				                    (CanTp_TransferInstanceMode)0x00
 #define CANTP_RX_PROCESSING                             (CanTp_TransferInstanceMode)0x01
