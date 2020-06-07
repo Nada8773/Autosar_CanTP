@@ -23,6 +23,9 @@
 
 #define SEGMENT_NUMBER_MASK                                                  (uint8)0x0F
 
+#define CANTP_OFF                                       0U
+#define CANTP_ON                                        1U
+
 typedef uint8 CanTp_TransferInstanceMode;
 #define CANTP_RX_WAIT				                    (CanTp_TransferInstanceMode)0x00
 #define CANTP_RX_PROCESSING                             (CanTp_TransferInstanceMode)0x01
