@@ -106,7 +106,7 @@ typedef uint8  IcomSwitch_ErrorType ;
 /* Buffer request not successful. Buffer cannot be accessed. This status shall have the value 1 */
 #define BUFREQ_E_NOT_OK    (BufReq_ReturnType)0x01
 /* Temporarily no buffer available. It's up the requester to retry request for a certain time. This status shall have the value 2 */
-#define BUFREQ_E_NOT_OK    (BufReq_ReturnType)0x02
+#define BUFREQ_E_BUSY      (BufReq_ReturnType)0x02
 /* No Buffer of the required length can be provided. This status shall have the value 3 */
 #define BUFREQ_E_OVFL      (BufReq_ReturnType)0x03
 
