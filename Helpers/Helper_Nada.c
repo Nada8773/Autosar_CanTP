@@ -36,9 +36,11 @@ void CanTP_StartNewRx(RunTimeInfo_s *rxRuntimeParam)
 {
     rxRuntimeParam->state           = IDLE          ;
     rxRuntimeParam->mode            = CANTP_RX_WAIT ;
-    rxRuntimeParam->transferTotal   = 0; // ->  rxRuntime->TotalNSduLength = 0;
+    rxRuntimeParam->transferTotal   = 0;
     rxRuntimeParam->Buffersize      = 0;
     rxRuntimeParam->CanTpRxWftCount = 0;
+    rxRuntimeParam->transferCount = 0;
+
     /*rxRuntime->NasNarPending = FALSE;
     rxRuntime->framesHandledCount = 0;
     rxRuntime->nextFlowControlCount = 0;
@@ -75,15 +77,6 @@ static void ReceiveSingleFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s 
                         to that N-SDU, with a length smaller than eight bytes (i.e. PduInfoPtr.SduLength < 8),
                         CanTp shall reject the reception. The runtime error code CANTP_E_PADDING shall be
                         reported to the Default Error Tracer */
-    if( (CanTpPduData->SduLength < 8) && (rxNSduConfig->CanTpTxPaddingActivation == CANTP_ON) )
-    {
-        /*  reject the reception */
-        /* Report Det */
-    }
-    else
-    {
-        /* Call ReceiveSingleFrame() ; */
-    }
 
     /****************************************************************************************************************************/
 
@@ -133,15 +126,16 @@ static void ReceiveSingleFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s 
     /* Change State To SF  wait Pdur Buffer */
     rxRuntimeParam->state = SF_OR_FF_RECEIVED_WAITING_PDUR_BUFFER;
 
-    if ( rxRuntimeParam->Buffersize == 0 )
-    {
-        /* [SWS_CanTp_00079] When receiving an SF or an FF N-PDU, the CanTp module
+
+    /* [SWS_CanTp_00079] When receiving an SF or an FF N-PDU, the CanTp module
              shall notify the upper layer (PDU Router) about this reception using the
              PduR_CanTpStartOfReception function */
-        /* TODO Change ID */
-        BufferRequest_Status = PduR_CanTpStartOfReception( ID_IPDU, &rxPduData, rxRuntimeParam->transferTotal,  \
-                                                           &rxRuntimeParam->Buffersize );
-    }
+    /* TODO Change ID */
+    BufferRequest_Status = PduR_CanTpStartOfReception( cantp_com_rx_or_copy[rxNSduConfig->CanTpRxNSduId], \
+                                                       &rxPduData,  \
+                                                       rxRuntimeParam->transferTotal,  \
+                                                       &rxRuntimeParam->Buffersize );
+
 
     switch(BufferRequest_Status)
     {
@@ -289,7 +283,9 @@ static void ReceiveFirstFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *
 
     rxRuntimeParam->stateTimeoutCount = (rxNSduConfig->CanTpNbr);
 
-    BufferRequest_Status = PduR_CanTpStartOfReception( ID_IPDU, &rxPduData,  rxRuntimeParam->transferTotal,  \
+    BufferRequest_Status = PduR_CanTpStartOfReception( cantp_com_rx_or_copy[rxNSduConfig->CanTpRxNSduId], \
+                                                       &rxPduData,  \
+                                                       rxRuntimeParam->transferTotal,  \
                                                        &rxRuntimeParam->Buffersize );
 
 
@@ -598,6 +594,8 @@ static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeIn
 {
     uint8 CanTpPduData_Offset ;
     uint8 CanTpCF_SegmentNumber;
+    static uint16 bytesRemaining;
+
     BufReq_ReturnType  BufferRequest_Status = BUFREQ_E_NOT_OK ;
     BufReq_ReturnType  CopyData_Status      = BUFREQ_E_NOT_OK ;
 
@@ -615,6 +613,8 @@ static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeIn
 
             /* Get Segment number from received frame */
             CanTpCF_SegmentNumber = CanTpPduData->SduDataPtr[CanTpPduData_Offset] & SEGMENT_NUMBER_MASK;
+            bytesRemaining = rxRuntimeParam->transferTotal -  rxRuntimeParam->transferCount;
+
 
             /*[SWS_CanTp_00314] The CanTp shall check the correctness of each SN received
                                 during a segmented reception. In case of wrong SN received the CanTp module shall
@@ -642,39 +642,48 @@ static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeIn
                     rxRuntimeParam->nextFlowControlCount--; /* Decreament number of cf need to receive */
 
                     /* TODO???????? can use  if( rxRuntimeParam->framesHandledCount == rxRuntimeParam->BS ) */
-                    if( rxRuntimeParam->nextFlowControlCount == 0 ) /* Last Consecutive Frame */
+                    if( rxRuntimeParam->nextFlowControlCount == 0 )  /* Last Consecutive Frame */
                     {
                         /* SWS_CanTp_00166] At the reception of a FF or last CF of a block, the CanTp
                                             shall start a time-out N_Br before calling PduR_CanTpStartOfReception
                                             or PduR_CanTpCopyRxData. */
-                        rxRuntimeParam->stateTimeoutCount = (rxNSduConfig->CanTpNbr);
+                        /* [SWS_CanTp_00325] If the function PduR_CanTpCopyRxData() called after
+                                              reception of the last Consecutive Frame of a block returns BUFREQ_OK,
+                                              but the remaining buffer is not sufficient for the reception of the next
+                                               block, the CanTp module shall start the timer N_Br. */
+                        if( rxRuntimeParam->Buffersize < rxRuntimeParam->bytesRemaining )
+                        {
+                            /* [SWS_CanTp_00222] While the timer N_Br is active, the CanTp module shall call
+                                                 the service PduR_CanTpCopyRxData() with a data length 0 (zero) and NULL_PTR
+                                                 as data buffer during each processing of the MainFunction */
+                            /* Set N_BR timer */
+                            rxRuntimeParam->stateTimeoutCount = (rxNSduConfig->CanTpNbr) ;
 
-                        /* [page 37] Last CF Received: this consecutive frame is the last
-                                     (Total length information was, as parameter, in the first frame).
-                                      CanTp shall notify PDU Router with sPduR_CanTpRxIndication callback.*/
-                        PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_OK);
+                            /* main function will check this state to handle if the buffer size
+                              become available or not and if the timer is expired send wait flow control */
+                            rxRuntimeParam->state             = RX_WAIT_SDU_BUFFER       ;
 
+                            /* Receiver in progressing mode */
+                            rxRuntimeParam->mode              = CANTP_RX_PROCESSING      ;
 
+                        }
                         /* [SWS_CanTp_00224] When the Rx buffer is large enough for the next block
                                             (directly after the First Frame or the last Consecutive Frame
                                             of a block, or after repeated calls to PduR_CanTpCopyRxData()
                                             according to SWS_CanTp_00222),the CanTp module shall send
                                             a Flow Control N-PDU with ClearToSend status (FC(CTS)) and
                                             shall then expect the reception of Consecutive Frame N-PDUs.*/
-
-                        if( rxRuntimeParam->Buffersize != 0 ) /* There's Block Size need To be Received */
+                        else /* Buffer Size in pdur is available */
                         {
+                            PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_OK);
                             /* send a Flow Control N-PDU with ClearToSend status  */
                             SendFlowControlFrame( rxNSduConfig, rxRuntimeParam, FLOW_CONTROL_CTS_FRAME);
                         }
-                        else /* End of Reception */
-                        {
-                            PduR_CanTpRxIndication(p_n_sdu->rx.cfg->nSduId, E_OK);
-                            rxRuntimeParam->state = IDLE;
-                            rxRuntimeParam->mode = CANTP_RX_WAIT;
-                        }
 
-
+                        /* [page 37] Last CF Received: this consecutive frame is the last
+                                     (Total length information was, as parameter, in the first frame).
+                                      CanTp shall notify PDU Router with PduR_CanTpRxIndication callback.*/
+                        // PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_OK);
                     }
                     else /* Consecutive Frame Not the Last one */
                     {
@@ -687,6 +696,10 @@ static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeIn
                     }
 
                     break;
+                    /*[SWS_CanTp_00271] If the PduR_CanTpCopyRxData() returns BUFREQ_E_NOT_OK
+                                        after reception of a Consecutive Frame in a block the CanTp
+                                        shall abort the reception of N-SDU and notify the PduR module
+                                         by calling the PduR_CanTpRxIndication() with the result E_NOT_OK */
                 case BUFREQ_E_NOT_OK :
                     /* Report an PDUR with E_NOT_OK to Abort*/
                     PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_NOT_OK);
