@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Helper.c
  *
  *  Created on: Jun 7, 2020
@@ -26,7 +26,7 @@ static void PadFrame(PduInfoType *PduInfoPtr)
 }
 
 /*This function copies Data from pdurBuffer to CanFrameBuffer */
-static BufReq_ReturnType sendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo *txRuntime)
+static BufReq_ReturnType SendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo *txRuntime)
 {
 	BufReq_ReturnType ret = BUFREQ_OK;
 
@@ -38,54 +38,40 @@ static BufReq_ReturnType sendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeI
 	/* make SduDataPtr point to first byte of Payload data */
 	txRuntime->pdurBuffer.SduDataPtr = & (txRuntime->IFdata[txRuntime->IFByteCount]);
 
-	if (txRuntime->availableDataSize == 0)           /* in case of SF or FF, no data left un sent */
+	if (txRuntime->availableDataSize == 0)           /* in case of SF or FF, no data left unsent */
 	{
 		ret                       = PduR_CanTpCopyTxData(cantp_com_copy_tx[txConfig->CanTpTxNSduId],&txRuntime->pdurBuffer,retry,&txRuntime->availableDataSize);
 		txRuntime->transferCount += txRuntime->pdurBuffer.SduLength;
 	}
 
-	else
-
-#if (CANTP_USE_STANDARD_ADDRESSING == STD_ON)          /* in case of standard Addressing */
+	else /* In case of any CF */
 	{
+	    /* Value of MAX_PAYLOAD of each frame differentiates depending on the addressing mode whether
+	     * it's standard or extended Addressing modes */
 		if ( (txRuntime->availableDataSize) > MAX_PAYLOAD_CF)	     /* in case of Full CF */
 		{
-			(txRuntime->pdurBuffer.SduLength) =  MAX_PAYLOAD_SF;
+			(txRuntime->pdurBuffer.SduLength) =  MAX_PAYLOAD_CF;
 		}
-		else if ( (txRuntime->availableDataSize) <= MAX_PAYLOAD_CF)	/* in case of Last CF */
+		else if ( (txRuntime->availableDataSize) <= MAX_PAYLOAD_CF)	 /* in case of Last CF */
 		{
 			(txRuntime->pdurBuffer.SduLength) = (txRuntime->availableDataSize);
 		}
 
-	    (txRuntime->transferCount)       += (txRuntime->pdurBuffer.SduLength);
 		ret                               = PduR_CanTpCopyTxData(cantp_com_copy_tx[txConfig->CanTpTxNSduId],&txRuntime->pdurBuffer,retry,&txRuntime->availableDataSize);
+		/* copying Data from pdurBuffer to canFrameBuffer and all in runtime */
+		txRuntime->IFdata                 = txRuntime->pdurBuffer.SduDataPtr;
+		/* Updating total transfered amount of bytes */
+		txRuntime->transferCount         += txRuntime->pdurBuffer.SduLength;
+		/* Updating total number of bytes to be transmitted to CanIF */
+		txRuntime->IFByteCount           += txRuntime->pdurBuffer.SduLength;
 	}
-#elif(CANTP_USE_EXTENDED_ADDRESSING == STD_ON)		  /* in case of Extended */
-	{
-		if ( (txRuntime->availableDataSize) > MAX_PAYLOAD_CF)	     /* in case of Full CF */
-		{
-			(txRuntime->pdurBuffer.SduLength) = MAX_PAYLOAD_SF;
-			ret                               = PduR_CanTpCopyTxData(txConfig->CanTpTxNSduId,&txRuntime->pdurBuffer,Retry,&txRuntime->availableDataSize);
-		}
-
-		else if ( (txRuntime->availableDataSize) <= MAX_PAYLOAD_CF)	/* in case of Last CF */
-		{
-			txRuntime->pdurBuffer.SduLength = txRuntime->availableDataSize;
-			ret                             = PduR_CanTpCopyTxData(txConfig->CanTpTxNSduId,&txRuntime->pdurBuffer,Retry,&txRuntime->availableDataSize);
-		}
-	}
-#endif
-
-	txRuntime->IFByteCount += txRuntime->pdurBuffer.SduLength;   // Updating bytecount
-
-	/* copying Data from pdurBuffer to canFrameBuffer and all in runtime */
-	txRuntime->IFdata = txRuntime->pdurBuffer.SduDataPtr;
 
  	if(BUFREQ_OK == ret) /* data copied successfully */
 	{
  		PduInfoType pduInfo;
 		Std_ReturnType resp;
-    
+		uint8 canif_id = canif_ids[txConfig->CanTpTxNSduId];
+
 		pduInfo.SduDataPtr = txRuntime->IFdata;
 		pduInfo.SduLength  = txRuntime->IFByteCount;
 
@@ -104,23 +90,23 @@ static BufReq_ReturnType sendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeI
 
 		/* change state to verify tx confirm within timeout */
 		txRuntime->stateTimeoutCount = (txConfig->CanTpNas);
-		txRuntime->NasNarPending     =  TRUE;
+		txRuntime->NasNarPending     =  TRUE; // i see no clear use for it !!
 		txRuntime->state             =  TX_WAIT_TX_CONFIRMATION;
 
-		uint8 canif_id = canif_ids[txConfig->CanTpTxNSduId];
-		resp           = CanIf_Transmit(canif_id, pduInfo);
+		/* Calling CanIf to transmit underlying frame */
+		resp           = CanIf_Transmit(canif_id, &pduInfo);
 
-		if(E_OK == resp)
-		{
-			/* data sent successfully */
-		}
-		else if(E_NOT_OK == resp)
+		if(E_NOT_OK == resp)
 		{
 			/* [SWS_CanTp_00343]⌈CanTp shall terminate the current transmission connection when CanIf_Transmit()
 			 * returns E_NOT_OK when transmitting an SF, FF, of CF */
 
 			/* failed to send, returning value of BUFREQ_E_NOT_OK to caller */
 			ret = BUFREQ_E_NOT_OK;
+		}
+		else if(E_OK == resp)
+		{
+			/* data sent successfully */
 		}
 	}
   else /* BUFREQ_E_NOT_OK or BUFREQ_E_BUSY */
@@ -155,7 +141,7 @@ static void handleNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo *txRunt
 	if ( (txRuntime->transferTotal) <= (txRuntime->transferCount) )
 	{
 		/* Transfer finished! */
-		//PduR_CanTpTxConfirmation(txConfig->PduR_PduId, E_OK);
+		PduR_CanTpTxConfirmation(txConfig->CanTpTxNPduConfirmationPduId, E_OK);
 		txRuntime->state = IDLE;
 		txRuntime->mode  = CANTP_TX_WAIT;
 	}
