@@ -129,7 +129,7 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
 #endif
     }
 
-   /* TODO CANTP_E_PARAM_CONFIG & CANTP_E_PARAM_ID
+    /* TODO CANTP_E_PARAM_CONFIG & CANTP_E_PARAM_ID
             API service called with wrong parameter(s): When CanTp_Transmit is called for a none
             configured PDU identifier or with an identifier for a received PDU */
 
@@ -178,7 +178,7 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
             break;
         default:
             TransmitRequest_Status = E_NOT_OK ;
-        break;
+            break;
 
         }
     }
@@ -339,11 +339,19 @@ void CanTp_RxIndication(PduIdType RxPduId, const PduInfoType* PduInfoPtr)
 #endif
     }
 
-
     else
     {
-        /* TODO Need To Check If ID is Valid page 48*/
-        HandleReceivedFrame(RxPduId, PduInfoPtr);
+        /* CANTP_E_INVALID_RX_ID
+               Invalid Receive PDU identifier (e.g. a service is called with
+               an inexistent Rx PDU identifier)*/
+        if (RxPduId < CANTP_RXID_LIST_SIZE)
+        {
+            HandleReceivedFrame(RxPduId, PduInfoPtr);
+        }
+        else
+        {
+            Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_INVALID_RX_ID);
+        }
     }
 }
 
@@ -415,8 +423,7 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
                               (i.e. PduInfoPtr. SduLength != 8), CanTp shall abort the ongoing reception by
                               calling PduR_CanTpRxIndication() with the result E_NOT_OK. The runtime error
                               code CANTP_E_PADDING shall be reported to the Default Error Tracer */
-        /* TODO RunTimeInfo is it Array or not ??*/
-        if ( (RunTimeInfo[RxPduId].nextFlowControlCount == 0)  && (RunTimeInfo[RxPduId].BS) ) /* Last Consecutive Frame */
+        if ( (RunTimeInfo->nextFlowControlCount == 0)  && (RunTimeInfo->BS) ) /* Last Consecutive Frame */
         {
             if( (CanTpPduData->SduLength < MAX_FRAME_BYTES) &&  \
                     (CanTpRxNSdu[RxPduId].CanTpTxPaddingActivation == CANTP_ON) )
@@ -463,12 +470,10 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
         break;
 
     default:
-        /* Do Nothing */
         break;
     }
     break;
     default:
-        /* Do Nothing */
         break;
 }
 }
