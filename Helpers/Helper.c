@@ -82,7 +82,8 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
     Std_ReturnType      TransmitRequest_Status = E_NOT_OK;
     const CanTpTxNSdu_s *txConfig  = NULL;
     RunTimeInfo_s       *txRuntime = NULL;
-    uint8 MAX_PAYLOAD ;
+    uint8 MAX_PAYLOAD_CF ;
+    uint8 MAX_PAYLOAD_FF ;
     FramType Frame ;
     /* [SWS_CanTp_00225] For specific connections that do not use MetaData, the
                          function CanTp_Transmit shall only use the full SduLength
@@ -90,13 +91,6 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
                          in order to prepare Single Frame or First Frame PCI */
 
     txConfig    =  &CanTpTxNSdu[TxPduId];
-
-
-#if txConfig->CanTpTxAddressingFormat == CANTP_STANDARD
-    MAX_PAYLOAD = MAX_PAYLOAD_STANDRAD_CF ;
-#elif txConfig->CanTpTxAddressingFormat == CANTP_EXTENDED
-    MAX_PAYLOAD = MAX_PAYLOAD_EXTENDED_CF ;
-#endif
 
 
     if( CanTpRunTimeData.internalState == CANTP_OFF )
@@ -147,7 +141,13 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
 
         txRuntime->IFByteCount   = 0;
 
-        if( txRuntime->transferTotal <= MAX_PAYLOAD ) /* Single Frame */
+#if txConfig->CanTpTxAddressingFormat == CANTP_STANDARD
+    MAX_PAYLOAD_CF = MAX_PAYLOAD_STANDRAD_CF ;
+#elif txConfig->CanTpTxAddressingFormat == CANTP_EXTENDED
+    MAX_PAYLOAD_CF = MAX_PAYLOAD_EXTENDED_CF ;
+#endif
+
+        if( txRuntime->transferTotal <= MAX_PAYLOAD_CF ) /* Single Frame */
         {
             Frame = SINGLE_FRAME ;
         }
@@ -159,19 +159,28 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
         {
         case SINGLE_FRAME :
             txRuntime->IFdata[txRuntime->IFByteCount++] = ISO15765_TPCI_SF | (txRuntime->transferTotal);
-            txRuntime->state = TX_WAIT_TRANSMIT;
-            TransmitRequest_Status = E_OK ;
-            //          txRuntime->pdurBuffer.SduLength = txRuntime->transferTotal ;
 
+            txRuntime->pdurBuffer.SduLength = txRuntime->transferTotal ;
+            txRuntime->state                = TX_WAIT_TRANSMIT;
+            TransmitRequest_Status          = E_OK ;
             break;
+
         case  FIRST_FRAM :
+
+#if txConfig->CanTpTxAddressingFormat == CANTP_STANDARD
+    MAX_PAYLOAD_CF = MAX_PAYLOAD_STANDRAD_FF ;
+#elif txConfig->CanTpTxAddressingFormat == CANTP_EXTENDED
+    MAX_PAYLOAD_CF = MAX_PAYLOAD_EXTENDED_FF ;
+#endif
             txRuntime->IFdata[txRuntime->IFByteCount++] = ISO15765_TPCI_FF | (uint8)((txRuntime->transferTotal & 0xf00) >> 8);
 
             txRuntime->IFdata[txRuntime->IFByteCount++] = (uint8)(txRuntime->transferTotal & 0xff);
 
-            txRuntime->state = TX_WAIT_TRANSMIT;
+            txRuntime->pdurBuffer.SduLength =  MAX_PAYLOAD_CF ;
 
-            TransmitRequest_Status = E_OK ;
+            txRuntime->state                = TX_WAIT_TRANSMIT;
+
+            TransmitRequest_Status          = E_OK ;
 
             /* txRuntime->iso15765.nextFlowControlCount = 1;
                txRuntime->iso15765.BS = 1; */
@@ -235,7 +244,7 @@ void CanTp_TxConfirmation(PduIdType TxPduId, Std_ReturnType result)
     //Canif_Id = canif_ids[TxPduId];
     /* TODO Check if ID is Valid */
     /* In Transmit made an variable that will store the
-     * index of CanTpTxNSdu to use it here
+     * index of CanTpTxNSdu[] to use it here
      * and Apply the same For RXIndication
      */
 
@@ -259,7 +268,6 @@ void CanTp_TxConfirmation(PduIdType TxPduId, Std_ReturnType result)
     {
         /*[SWS_CanTp_00355]  CanTp shall abort the corrensponding session, when
                          CanTp_TxConfirmation() is called with the result E_NOT_OK */
-
         switch(result)
         {
         case E_NOT_OK:
@@ -370,7 +378,6 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
 {
     uint8 CanTpPduDataPCI_Offset ;
     uint8 CanTp_FrameID;
-    uint8 CanTp_FcFrameID ;
     RunTimeInfo_s *RunTimeInfo ;
 
 #if rxNSduConfig->CanTpRxAddressingFormat == CANTP_STANDARD  /*(SF & FF & CF & FC)-> [ ID -> (7-4)Bits at first Byte ] */
@@ -426,19 +433,19 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
         if ( (RunTimeInfo->nextFlowControlCount == 0)  && (RunTimeInfo->BS) ) /* Last Consecutive Frame */
         {
             if( (CanTpPduData->SduLength < MAX_FRAME_BYTES) &&  \
-                    (CanTpRxNSdu[RxPduId].CanTpTxPaddingActivation == CANTP_ON) )
+                    (CanTpRxNSdu[RxPduId].CanTpRxPaddingActivation == CANTP_ON) )
             {
 #if DET_ERROR_STATUS == STD_ON
                 Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_PADDING);
 #endif
                 PduR_CanTpRxIndication(CanTpRxNSdu[RxPduId].CanTpTxNSduId, E_NOT_OK);
             }
-            else
+            else /* At Last CF   */
             {
                 ReceiveConsecutiveFrame(&CanTpRxNSdu[RxPduId], RunTimeInfo, CanTpPduData);
             }
         }
-        else
+        else /* Not Last CF*/
         {
             ReceiveConsecutiveFrame(&CanTpRxNSdu[RxPduId], RunTimeInfo, CanTpPduData);
         }
@@ -453,18 +460,16 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
                               the CanTp module shall abort the transmission session by
                               calling PduR_CanTpTxConfirmation() with the */
         if( (CanTpPduData->SduLength < MAX_FRAME_BYTES) &&  \
-                (CanTpRxNSdu[RxPduId].CanTpTxPaddingActivation == CANTP_ON) )
+                (CanTpTxNSdu[RxPduId].CanTpTxPaddingActivation == CANTP_ON) )
         {
 #if DET_ERROR_STATUS == STD_ON
             Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_PADDING);
 #endif
-            /* TODO ????????????????????? */
-            PduR_CanTpTxConfirmation(CanTpTxNSdu[RxPduId].CanTpTxNPduConfirmationPduId, E_NOT_OK);
+            PduR_CanTpTxConfirmation(&CanTpTxNSdu[RxPduId].CanTpTxNPduConfirmationPduId, E_NOT_OK);
         }
         else
         {
             /* Get the Frame Status for Flow Control */
-            CanTp_FcFrameID = CanTpPduData->SduDataPtr[CanTpPduDataPCI_Offset] & ISO15765_TPCI_FS_MASK ;
             ReceiveFlowControlFrame(&CanTpTxNSdu[RxPduId], RunTimeInfo, CanTpPduData);
         }
         break;
