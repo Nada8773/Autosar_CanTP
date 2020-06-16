@@ -35,11 +35,20 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
 static void HandleNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo *txRuntime);
 static BufReq_ReturnType SendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo *txRuntime);
 
+/* Global array of Configuration Objects to hold configuations generated in CanTP_cfg.c */
+const CanTpTxNSdu_s G_CanTpTxNSdu[CANTP_NSDU_CONFIG_LIST_SIZE_TX];
+const CanTpRxNSdu_s G_CanTpRxNSdu[CANTP_NSDU_CONFIG_LIST_SIZE_RX];
+
+/* Global array of ChannelInfo to hold Channel Configurations */
+ChannelInfo_s ChannelInfo[MAX_CHANNEL_COUNT];
+
 /* Global Runtime Object */
 RunTimeInfo_s CanTpRunTimeData =
 {       .initRun = FALSE,
         .internalState = CANTP_OFF,
 };
+
+
 
 /*******************************************************************************************
  * Service name      : CanTp_Init                                                          *
