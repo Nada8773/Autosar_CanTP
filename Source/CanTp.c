@@ -69,6 +69,54 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
  **********************************************************************/
 void CanTp_MainFunction(void)
 {
+  	      RunTimeInfo_s *runtimeData;
+	const CanTpTxNSdu_s *txConfig;
+	const CanTpRxNSdu_s *rxConfig;
+
+	PduIdType      NSduCounter     = 0;
+
+	/* For TX */
+	uint8 i;
+	for (i=0; i < CANTP_NSDU_CONFIG_LIST_SIZE_TX; i++)
+	{
+		/* this if handle if CanTpTxChannel < Runtime_list_size
+		 *then access the  CanTpTxChannel element in the runtimeDataList
+		 * else access the last item in the runtimeDataList
+		 */
+		if ((uint8)CfgPtr->CanTpChannel.CanTpTxNSdu[i].CanTpTxChannel < CANTP_NSDU_RUNTIME_LIST_SIZE)
+		{
+			runtimeData = &CanTpRunTimeData.runtimeDataList[CfgPtr->CanTpChannel.CanTpTxNSdu[i].CanTpTxChannel];
+		}
+		else
+		{
+			runtimeData = &CanTpRunTimeData.runtimeDataList[CANTP_NSDU_RUNTIME_LIST_SIZE-1];
+		}
+
+		initTx15765RuntimeData( runtimeData );
+	}
+
+	/* For RX */
+	for (i=0; i < CANTP_NSDU_CONFIG_LIST_SIZE_RX; i++)
+	{
+
+		/* this if handle if CanTpRxChannel < Runtime_list_size
+		 *then access the  CanTpTxChannel element in the runtimeDataList
+		 * else access the last item in the runtimeDataList
+		 */
+		if (CfgPtr->CanTpChannel.CanTpRxNSdu[i].CanTpRxChannel < CANTP_NSDU_RUNTIME_LIST_SIZE)
+		{
+			runtimeData = &CanTpRunTimeData.runtimeDataList[CfgPtr->CanTpChannel.CanTpRxNSdu[i].CanTpRxChannel];
+		}
+		else
+		{
+			runtimeData = &CanTpRunTimeData.runtimeDataList[CANTP_NSDU_RUNTIME_LIST_SIZE-1];
+		}
+		initRx15765RuntimeData( runtimeData );
+	}
+
+
+	CanTpRunTimeData.internalState = CANTP_ON;    /* if the initfunc finished correcltly without errors ,then move into CANTP_ON state */
+
 }
 
 

@@ -23,6 +23,9 @@
 
 #define SEGMENT_NUMBER_MASK                                                  (uint8)0x0F
 
+typedef uint8 CanTp_PaddingActivationType;
+typedef uint8 CanTp_InternalState;
+
 #define CANTP_OFF                                       0U
 #define CANTP_ON                                        1U
 
@@ -42,7 +45,7 @@
 #define CANTP_E_TX_COM                                  0xD0
 
 typedef uint8 CanTp_TransferInstanceMode;
-#define CANTP_RX_WAIT				                    (CanTp_TransferInstanceMode)0x00
+#define CANTP_RX_WAIT				                            (CanTp_TransferInstanceMode)0x00
 #define CANTP_RX_PROCESSING                             (CanTp_TransferInstanceMode)0x01
 #define CANTP_TX_WAIT                                   (CanTp_TransferInstanceMode)0x02
 #define CANTP_TX_PROCESSING                             (CanTp_TransferInstanceMode)0x03
@@ -65,7 +68,7 @@ typedef uint8 TransferStateTypes;
 #define TX_WAIT_STMIN                                           (TransferStateTypes)0x05
 #define TX_WAIT_TRANSMIT										(TransferStateTypes)0x06
 #define TX_WAIT_FLOW_CONTROL									(TransferStateTypes)0x07
-#define TX_WAIT_TX_CONFIRMATION									(TransferStateTypes)0x08
+#define TX_WAIT_TX_CONFIRMATION								    (TransferStateTypes)0x08
 
 typedef uint8 ChannelModeType;
 #define CANTP_MODE_FULL_DUPLEX                                     (ChannelModeType)0x00
@@ -134,7 +137,7 @@ typedef struct
                                                                   made by means of the N_TA value (first data byte of FC frames) */
 
           uint8                  CanTpTxChannel;	          //Should be removed and channel list is created instead
-}CanTpTxNSdu;
+}CanTpTxNSdu_s;
 
 /**************** CanTpRxNSduType Struct ****************/
 typedef struct
@@ -151,17 +154,17 @@ typedef struct
 																  hookedup in case of a temporarily reception inability on the part of the receiver nodes,
 																  whereby the sender could be waiting continuously. */
 																  
-    const float64                CanTpNar;                     /* Value in seconds of the N_Ar timeout. N_Ar is the time for transmission of
-                                                                  a CAN frame (any N_PDU) on the receiver side */
+    const float64                CanTpNar;                      /* Value in seconds of the N_Ar timeout. N_Ar is the time for transmission of
+                                                                   a CAN frame (any N_PDU) on the receiver side */
 															 	  
-    const float64                CanTpNbr;                     /* Value in seconds of the N_Cr timeout. N_Cr is the time until reception of
-                                                                  the next Consecutive Frame N_PDU */
+    const float64                CanTpNbr;                      /* Value in seconds of the N_Cr timeout. N_Cr is the time until reception of
+                                                                   the next Consecutive Frame N_PDU */
 																  
     const float64                CanTpNcr;                     /* Value in seconds of the N_Cr timeout. N_Cr is the time until reception of
-                                                                  the next Consecutive Frame N_PDU. */
+                                                                   the next Consecutive Frame N_PDU. */
 																  
-          uint16                 CanTpRxNSduId;                /* Unique identifier user by the upper layer to call CanTp_CancelReceive,
-                                                                  CanTp_ChangeParameter and CanTp_ReadParameter. */
+          uint16                 CanTpRxNSduId;                 /* Unique identifier user by the upper layer to call CanTp_CancelReceive,
+                                                                   CanTp_ChangeParameter and CanTp_ReadParameter. */
 																  
           uint16                 CanTpRxNPduId;                 /* The N-PDU identifier attached to the RxNsdu is identified by CanTpRxNSduId.
                                                                    Each RxNsdu identifier is linked to only one SF/FF/CF N-PDU identifier.
@@ -169,17 +172,17 @@ typedef struct
                                                                    same N-PDU identifier can be used for several N-SDU identifiers. The
                                                                    distinction is made by the N_TA or N_AE value (first data byte of SF or FF frames).*/
 																   
-    const uint8                  CanTpRxPaddingActivation;     /* Defines if the receive frame uses padding or not. This parameter is restricted to 
+    const uint8                  CanTpRxPaddingActivation;       /* Defines if the receive frame uses padding or not. This parameter is restricted to
 	                                                              8 byte N-PDUs. Definition of enumeration values ( CANTP_OFF & CANTP_ON) */
 																  
-          uint8                  CanTpRxTaType;                /* Declares the communication type of this Rx N-SDU 
+          uint8                  CanTpRxTaType;                  /* Declares the communication type of this Rx N-SDU
 		                                                          Definition of enumeration values ( CANTP_FUNCTIONAL & CANTP_PHYSICAL) */
 		  
 	      uint16                 CanTpTxFcNPduConfirmationPduId; /* Handle Id to be used by the CanIf to confirm the transmission of the
                                                                     CanTpTxFcNPdu to the CanIf module. */
 
           uint8                  CanTpRxChannel;               //Should be removed and channel list is created instead
-}CanTpRxNSdu;
+}CanTpRxNSdu_s;
 
 /**************** RunTimeInfo Struct ****************/
 typedef struct
@@ -198,12 +201,13 @@ typedef struct
 	uint32                        transferTotal;
 	uint32                        transferCount;
 	uint32                        availableDataSize;
+    PduInfoType                   pdurBuffer;       // The PDUR make an instance of this.
 	PduLengthType                 IFByteCount;
 	PduLengthType                 IFdata[MaxSegSize];
 	CanTp_TransferInstanceMode    mode;
-	uint32                        Buffersize;
+	PduLengthType                 Buffersize;
 
-}RunTimeInfo;
+}RunTimeInfo_s;
 
 
 /**************************** Function-Like Macros ******************************************/
@@ -213,10 +217,7 @@ typedef struct
             timer = timer - 1; \
         } \
 
-#define COUNT_DECREMENT(count) \
-        if (count > 0) { \
-            count = count - 1; \
-        } \
+#define COUNT_DECREMENT(count) TIMER_DECREMENT(count)
 
 /**************************** AUTOSAR-Compliant APIs' Prototypes ******************************************/
 

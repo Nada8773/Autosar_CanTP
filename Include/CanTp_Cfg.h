@@ -47,6 +47,9 @@
 
 uint8 MaxSegSize = MAX_SEGMENT_DATA_SIZE;
 
+#define CANTP_NSDU_CONFIG_LIST_SIZE_RX	2
+#define CANTP_NSDU_CONFIG_LIST_SIZE_TX	2
+
 
 extern const CanTp_TxNSduType CanTpTxNSdu[];
 extern const CanTp_RxNSduType CanTpRxNSdu[];
