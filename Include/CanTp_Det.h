@@ -1,10 +1,25 @@
+ /*******************************************************************************************
+ *                                                                                          *
+ * File Name   : CanTp_Det.h                                                                *
+ *                                                                                          *
+ * Author      : ITI AUTOSAR CanTP Team                                                     *
+ *                                                                                          *
+ * Platform    : TivaC                                                                      *
+ *                                                                                          *
+ * Date        : 6 Jun 2020                                                                 *
+ *                                                                                          *
+ * Version     : 4.0.0                                                                      *
+ *                                                                                          *
+ * Description : specifies the AUTOSAR canTp Macros used by Det  Release 4.3.1              *
+ *                                                                                          *
+ ********************************************************************************************/
 
 #ifndef CANTP_DET_H_
 #define CANTP_DET_H_
 
 
-#define CANTP_MODULE_ID    (0x0E) /* CanTp Module Id */
-#define CANTP_INSTANCE_ID  (0x00)  /* CanTp Instance Id */
+#define CANTP_MODULE_ID                                (0x0E) /* CanTp Module Id */
+#define CANTP_INSTANCE_ID                              (0x00)  /* CanTp Instance Id */
 
 /* Runtime Errors */
 #define CANTP_E_PARAM_CONFIG                            0x01
