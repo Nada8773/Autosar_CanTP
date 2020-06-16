@@ -1,4 +1,4 @@
-/*******************************************************************************************
+﻿/*******************************************************************************************
  *                                                                                          *
  * File Name   : CanTp.c                                                                    *
  *                                                                                          *
@@ -66,16 +66,13 @@ RunTimeInfo_s CanTpRunTimeRxData[MAX_CHANNEL_COUNT] =
  ********************************************************************************************/
 void CanTp_Init(const CanTp_ConfigType* CfgPtr)
 {
-    const  CanTpTxNSdu_s *txConfig   = NULL_PTR;
-    const  CanTpRxNSdu_s *rxConfig   = NULL_PTR;
+    //const  CanTpTxNSdu_s *txConfig   = NULL_PTR;
+    //const  CanTpRxNSdu_s *rxConfig   = NULL_PTR;
     RunTimeInfo_s *txRuntime         = NULL_PTR;
     RunTimeInfo_s *rxRuntime         = NULL_PTR;
 
     for( ChannelCounter=0; ChannelCounter < MAX_CHANNEL_COUNT; ChannelCounter++ ) //TODO: replace for loop if possible
     {
-        txConfig  = (CanTpTxNSdu_s*)&G_CanTpTxNSdu[ChannelInfo[ChannelCounter].StIdx];
-        rxConfig  = (CanTpRxNSdu_s*)&G_CanTpRxNSdu[ChannelInfo[ChannelCounter].StIdx];
-
         txRuntime = (RunTimeInfo_s*)&CanTpRunTimeTxData[ChannelInfo[ChannelCounter].StIdx];
         rxRuntime = (RunTimeInfo_s*)&CanTpRunTimeRxData[ChannelInfo[ChannelCounter].StIdx];
 
@@ -84,7 +81,7 @@ void CanTp_Init(const CanTp_ConfigType* CfgPtr)
     }
 
 
-
+   /* Put CanTp_ON */
 
 }
 
