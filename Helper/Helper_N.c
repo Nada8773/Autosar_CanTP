@@ -66,10 +66,24 @@ RunTimeInfo_s CanTpRunTimeRxData[MAX_CHANNEL_COUNT] =
  ********************************************************************************************/
 void CanTp_Init(const CanTp_ConfigType* CfgPtr)
 {
-    RunTimeInfo_s *txRuntime
+    const  CanTpTxNSdu_s *txConfig   = NULL_PTR;
+    const  CanTpRxNSdu_s *rxConfig   = NULL_PTR;
+    RunTimeInfo_s *txRuntime         = NULL_PTR;
+    RunTimeInfo_s *rxRuntime         = NULL_PTR;
 
-    StartNewTransmission(RunTimeInfo_s *txRuntime);
-    StartNewReception(RunTimeInfo_s *rxRuntime);
+    for( ChannelCounter=0; ChannelCounter < MAX_CHANNEL_COUNT; ChannelCounter++ ) //TODO: replace for loop if possible
+    {
+        txConfig  = (CanTpTxNSdu_s*)&G_CanTpTxNSdu[ChannelInfo[ChannelCounter].StIdx];
+        rxConfig  = (CanTpRxNSdu_s*)&G_CanTpRxNSdu[ChannelInfo[ChannelCounter].StIdx];
+
+        txRuntime = (RunTimeInfo_s*)&CanTpRunTimeTxData[ChannelInfo[ChannelCounter].StIdx];
+        rxRuntime = (RunTimeInfo_s*)&CanTpRunTimeRxData[ChannelInfo[ChannelCounter].StIdx];
+
+        StartNewTransmission(txRuntime);
+        StartNewReception(rxRuntime);
+    }
+
+
 
 
 }
@@ -99,8 +113,8 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
                          information and shall not use the available N-SDU data buffer
                          in order to prepare Single Frame or First Frame PCI */
 
-    txConfig    =  &CanTpTxNSdu[TxPduId];
-    txRuntime   = &CanTpRunTimeData ;
+    txConfig    =  &G_CanTpTxNSdu[TxPduId] ;
+    txRuntime   =  &CanTpRunTimeTxData[TxPduId] ;
 
     if( CanTpRunTimeData.internalState == CANTP_OFF )
     {
@@ -257,12 +271,13 @@ void CanTp_MainFunction(void)
         /* Handling Sender Side timeouts N_As, N_Bs, N_Cs and STmin */
 
         /* for each Tx NSDU */
-        for( NSduCounter=0; NSduCounter < CANTP_NSDU_CONFIG_LIST_SIZE_TX; NSduCounter++ ) //TODO: replace for loop if possible
+        for( ChannelCounter=0; ChannelCounter < MAX_CHANNEL_COUNT; ChannelCounter++ ) //TODO: replace for loop if possible
         {
-            txConfig  = (CanTpTxNSdu_s*)&CanTpTxNSdu[NSduCounter];
-            rxConfig  = (CanTpRxNSdu_s*)&CanTpRxNSdu[NSduCounter];
+            txConfig  = (CanTpTxNSdu_s*)&G_CanTpTxNSdu[ChannelInfo[ChannelCounter].StIdx];
+            rxConfig  = (CanTpRxNSdu_s*)&G_CanTpRxNSdu[ChannelInfo[ChannelCounter].StIdx];
 
-            txRuntime = (RunTimeInfo_s*)&RunTimeInfo;
+            txRuntime = (RunTimeInfo_s*)&CanTpRunTimeTxData[ChannelInfo[ChannelCounter].StIdx];
+            rxRuntime = (RunTimeInfo_s*)&CanTpRunTimeRxData[ChannelInfo[ChannelCounter].StIdx];
 
             switch (txRuntime->state)
             {
@@ -372,19 +387,9 @@ void CanTp_MainFunction(void)
                 break;
             }
 
-        }
+            /*-----------------------------------------------Receiver Side-------------------------------------------------------*/
 
-        /*-----------------------------------------------Receiver Side-------------------------------------------------------*/
-
-        /* Handling Receiver Side timeouts N_Ar,N_Br and N_Cr */
-
-        /* for each Rx NSDU */
-        for( NSduCounter=0; NSduCounter < CANTP_NSDU_CONFIG_LIST_SIZE_RX; NSduCounter++ )
-        {
-            txConfig  = (CanTpTxNSdu_s*)&CanTpTxNSdu[NSduCounter];
-            rxConfig  = (CanTpRxNSdu_s*)&CanTpRxNSdu[NSduCounter];
-
-            rxRuntime = (RunTimeInfo_s*)&RunTimeInfo;
+            /* Handling Receiver Side timeouts N_Ar,N_Br and N_Cr */
 
             switch (rxRuntime->state)
             {
@@ -546,12 +551,12 @@ void CanTp_MainFunction(void)
 
 void CanTp_TxConfirmation(PduIdType TxPduId, Std_ReturnType result)
 {
-    RunTimeInfo_s *RunTimeInfo;
+    RunTimeInfo_s *txRuntime ;
     const CanTpTxNSdu_s *txConfig = NULL;
 
 
-    RunTimeInfo = &CanTpRunTimeData ;
-    txConfig    = &CanTpTxNSdu[TxPduId] ;
+    txRuntime   = &CanTpRunTimeTxData[TxPduId] ;
+    txConfig    = &G_CanTpTxNSdu[TxPduId] ;
 
     /* [SWS_CanTp_00111] If called when the CanTp module is in the global state CANTP_ON,
                              the function CanTp_Init shall return the module to state Idle
@@ -580,7 +585,7 @@ void CanTp_TxConfirmation(PduIdType TxPduId, Std_ReturnType result)
         case E_OK:
             if(RunTimeInfo->state == TX_WAIT_TX_CONFIRMATION)
             {
-                handleNextTxFrameSent(txConfig, RunTimeInfo);
+                handleNextTxFrameSent(txConfig, txRuntime);
             }
             else
             {
@@ -674,7 +679,7 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
 {
     uint8 CanTpPduDataPCI_Offset ;
     uint8 CanTp_FrameID;
-    RunTimeInfo_s *RunTimeInfo ;
+
 
 #if rxNSduConfig->CanTpRxAddressingFormat == CANTP_STANDARD  /*(SF & FF & CF & FC)-> [ ID -> (7-4)Bits at first Byte ] */
     CanTpPduDataPCI_Offset = 0;
@@ -699,22 +704,22 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
                         The runtime error code CANTP_E_PADDING shall be
                         reported to the Default Error Tracer. */
         if( (CanTpPduData->SduLength < MAX_FRAME_BYTES) &&  \
-                (CanTpRxNSdu[RxPduId].CanTpTxPaddingActivation == CANTP_ON) )
+                (G_CanTpRxNSdu[RxPduId].CanTpTxPaddingActivation == CANTP_ON) )
         {
 #if DET_ERROR_STATUS == STD_ON
             Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_PADDING);
 #endif
-            PduR_CanTpRxIndication(CanTpRxNSdu[RxPduId].CanTpTxNSduId, E_NOT_OK);
+            PduR_CanTpRxIndication(G_CanTpRxNSdu[RxPduId].CanTpTxNSduId, E_NOT_OK);
         }
         else
         {
             // if((CanTpTxNSdu[RxPduId] != NULL_PTR))
-            ReceiveSingleFrame(&CanTpRxNSdu[RxPduId], RunTimeInfo, CanTpPduData);
+            ReceiveSingleFrame(&G_CanTpRxNSdu[RxPduId], &CanTpRunTimeRxData[RxPduId], CanTpPduData);
         }
         break;
 
     case ISO15765_TPCI_FF: /* First Frame ******************************************************/
-        ReceiveFirstFrame(&CanTpRxNSdu[RxPduId], RunTimeInfo, CanTpPduData);
+        ReceiveFirstFrame(&G_CanTpRxNSdu[RxPduId], &CanTpRunTimeRxData[RxPduId], CanTpPduData);
         break;
 
     case ISO15765_TPCI_CF: /* Consecutive Frame ************************************************/
@@ -729,21 +734,21 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
         if ( (RunTimeInfo->nextFlowControlCount == 0)  && (RunTimeInfo->BS) ) /* Last Consecutive Frame */
         {
             if( (CanTpPduData->SduLength < MAX_FRAME_BYTES) &&  \
-                    (CanTpRxNSdu[RxPduId].CanTpRxPaddingActivation == CANTP_ON) )
+                    (G_CanTpRxNSdu[RxPduId].CanTpRxPaddingActivation == CANTP_ON) )
             {
 #if DET_ERROR_STATUS == STD_ON
                 Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_PADDING);
 #endif
-                PduR_CanTpRxIndication(CanTpRxNSdu[RxPduId].CanTpTxNSduId, E_NOT_OK);
+                PduR_CanTpRxIndication(G_CanTpRxNSdu[RxPduId].CanTpTxNSduId, E_NOT_OK);
             }
             else /* At Last CF   */
             {
-                ReceiveConsecutiveFrame(&CanTpRxNSdu[RxPduId], RunTimeInfo, CanTpPduData);
+                ReceiveConsecutiveFrame(&G_CanTpRxNSdu[RxPduId], &CanTpRunTimeRxData[RxPduId], CanTpPduData);
             }
         }
         else /* Not Last CF*/
         {
-            ReceiveConsecutiveFrame(&CanTpRxNSdu[RxPduId], RunTimeInfo, CanTpPduData);
+            ReceiveConsecutiveFrame(&G_CanTpRxNSdu[RxPduId], &CanTpRunTimeRxData[RxPduId], CanTpPduData);
         }
         break;
 
@@ -756,17 +761,17 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
                               the CanTp module shall abort the transmission session by
                               calling PduR_CanTpTxConfirmation() with the */
         if( (CanTpPduData->SduLength < MAX_FRAME_BYTES) &&  \
-                (CanTpTxNSdu[RxPduId].CanTpTxPaddingActivation == CANTP_ON) )
+                (G_CanTpTxNSdu[RxPduId].CanTpTxPaddingActivation == CANTP_ON) )
         {
 #if DET_ERROR_STATUS == STD_ON
             Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_PADDING);
 #endif
-            PduR_CanTpTxConfirmation(&CanTpTxNSdu[RxPduId].CanTpTxNPduConfirmationPduId, E_NOT_OK);
+            PduR_CanTpTxConfirmation(&G_CanTpTxNSdu[RxPduId].CanTpTxNPduConfirmationPduId, E_NOT_OK);
         }
         else
         {
             /* Get the Frame Status for Flow Control */
-            ReceiveFlowControlFrame(&CanTpTxNSdu[RxPduId], RunTimeInfo, CanTpPduData);
+            ReceiveFlowControlFrame(&G_CanTpTxNSdu[RxPduId], &CanTpRunTimeTxData[RxPduId], CanTpPduData);
         }
         break;
 
