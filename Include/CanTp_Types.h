@@ -78,7 +78,16 @@ typedef uint8 AddressingFormatType;
 #define ISO15765_FLOW_CONTROL_STATUS_OVFLW                                   (uint8)0x02  /* FC OverFlows Status */
 
 
-/**************** CanTpTxNSdu Struct ****************/
+/**************************** Function-Like Macros ******************************************/
+
+#define TIMER_DECREMENT(timer) \
+        if (timer > 0) { \
+            timer = timer - 1; \
+        } \
+
+#define COUNT_DECREMENT(count) TIMER_DECREMENT(count)
+
+/****************************** CanTpTxNSdu Structure ******************************************/
 typedef struct
 {
     const float64          CanTpNas;                     /* Value in second of the N_As timeout. N_As is the time for transmission of
@@ -110,11 +119,9 @@ typedef struct
                                                                   However, in the case of extended addressing format, the same FC N-PDU
                                                                   identifier can be used for several N-SDU identifiers. The distinction is
                                                                   made by means of the N_TA value (first data byte of FC frames) */
-
-    uint8                  CanTpTxChannel;              //Should be removed and channel list is created instead
 }CanTpTxNSdu_s;
 
-/**************** CanTpRxNSduType Struct ****************/
+/**************** CanTpRxNSduType Structure ****************/
 typedef struct
 {
     const uint8            CanTpBs ;                     /* Sets the number of N-PDUs the CanTp receiver allows the sender to send, before
@@ -161,21 +168,30 @@ typedef struct
 
     uint16                 CanTpTxFcNPduConfirmationPduId; /* Handle Id to be used by the CanIf to confirm the transmission of the
                                                                     CanTpTxFcNPdu to the CanIf module. */
-
-    uint8                  CanTpRxChannel;               //Should be removed and channel list is created instead
 }CanTpRxNSdu_s;
 
-/**************** RunTimeInfo Struct ****************/
+/************** Channel Info Structure ********************/
 typedef struct
 {
-    boolean                       initRun;
+  
+  /* Channel ID is the index of ChannelInfo Array created in CanTp.c , so no need to define a parameter for ID */
+  
+  ChannelModeType Mode;         /* Channel mode configuration options {CANTP_MODE_HALF_DUPLEX or CANTP_MODE_FULL_DUPLEX} */                    
+  PduIdType       StIdx;        /* Start index of TxNSdu and RxNSdu in configuration arrays generated */
+  uint8           Length;       /* Length of TxNSdu and RxNSdu sharing the same channel ID 
+                                 * "should be ordered in configuration arrays generated" */
+
+}ChannelInfo_s;
+
+/**************** RunTimeInfo Structure ****************/
+typedef struct
+{
     uint8                         internalState;
     uint16                        nextFlowControlCount;
     uint16                        framesHandledCount;
     uint32                        stateTimeoutCount;
     uint8                         STmin;
     uint8                         BS;
-    boolean                       NasNarPending;
     uint32                        NasNarTimeoutCount;
     TransferStateTypes            state;
     uint32                        pdurBufferCount;  //i see no significance for this parameter
@@ -189,16 +205,6 @@ typedef struct
     PduLengthType                 Buffersize;
 
 }RunTimeInfo_s;
-
-
-/**************************** Function-Like Macros ******************************************/
-
-#define TIMER_DECREMENT(timer) \
-        if (timer > 0) { \
-            timer = timer - 1; \
-        } \
-
-#define COUNT_DECREMENT(count) TIMER_DECREMENT(count)
 
 
 #endif /* CANTP_TYPES_H_ */
