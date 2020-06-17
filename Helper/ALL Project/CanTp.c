@@ -17,9 +17,8 @@
 #include "Platform_Types.h"
 #include "Compiler.h"
 #include "Std_Types.h"
-
-
 #include "ComStack_Types.h"
+
 #include "CanTp_Types.h"
 #include "CanTp.h"
 #include "CanTp_Cfg.h"
@@ -30,12 +29,33 @@
 #include "Det.h"
 
 #include "CanTp_CanIf.h"
+#include "PduR_CanTp.h"
+
+/* IDs of IF and Com 'temporary'*/
+uint8 canif_ids[]={cantp_canif_tx};
+uint8 cantp_com_copy_tx[]={CanTp_copy_cantp};
+uint8 cantp_com_rx_or_copy[]= {cantp_com_rx};
+uint8 cantp_cainf_FC[] ={CanTpTxFcNPdu_canif};
 
 
-/************************** For Just Testing ***********************************************************/
-void PduR_CanTpRxIndication(PduIdType CanTpRxPduId,uint8 Result)
+/************************** Stub Functions Just For Testing ***********************************************************/
+Std_ReturnType Det_ReportError(uint16 ModuleId, uint8 InstanceId, uint8 ApiId, uint8 ErrorId)
 {
+    return E_OK;
+}
 
+Std_ReturnType CanIf_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
+{
+    return E_OK;
+}
+
+BufReq_ReturnType PduR_CanTpCopyTxData( PduIdType id,  PduInfoType* info, const RetryInfoType* retry, PduLengthType* availableDataPtr )
+{
+    return BUFREQ_OK;
+}
+
+void PduR_CanTpTxConfirmation(PduIdType CanTpTxPduId, Std_ReturnType result)
+{
 
 }
 
@@ -66,6 +86,12 @@ BufReq_ReturnType PduR_CanTpCopyRxData(PduIdType id,PduInfoType *info,PduLengthT
     count++;
     return BUFREQ_OK;
 }
+
+void PduR_CanTpRxIndication(PduIdType CanTpRxPduId,uint8 Result)
+{
+
+}
+
 /*************************************************************************************************************/
 
 
@@ -236,7 +262,7 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
 
         txRuntime->mode          = CANTP_TX_PROCESSING;
 
-        txRuntime->IFByteCount   = 0;
+        txRuntime->IfBuffer.IFByteCount   = 0;
 
         if ( txConfig->CanTpTxAddressingFormat == CANTP_STANDARD )
         {
@@ -262,7 +288,7 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
         switch(Frame)
         {
         case SINGLE_FRAME :
-            txRuntime->IFdata[txRuntime->IFByteCount++] = ISO15765_TPCI_SF | (txRuntime->transferTotal);
+            txRuntime->IfBuffer.IFdataPtr[txRuntime->IfBuffer.IFByteCount++] = ISO15765_TPCI_SF | (txRuntime->transferTotal);
             txRuntime->pdurBuffer.SduLength             = txRuntime->transferTotal ;
             txRuntime->state                            = TX_WAIT_TRANSMIT;
             TransmitRequest_Status                      = E_OK ;
@@ -281,8 +307,8 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
             {
                 /* Nothing */
             }
-            txRuntime->IFdata[txRuntime->IFByteCount++] = ISO15765_TPCI_FF | (uint8)((txRuntime->transferTotal & 0xf00) >> 8);
-            txRuntime->IFdata[txRuntime->IFByteCount++] = (uint8)(txRuntime->transferTotal & 0xff);
+            txRuntime->IfBuffer.IFdataPtr[txRuntime->IfBuffer.IFByteCount++] = ISO15765_TPCI_FF | (uint8)((txRuntime->transferTotal & 0xf00) >> 8);
+            txRuntime->IfBuffer.IFdataPtr[txRuntime->IfBuffer.IFByteCount++] = (uint8)(txRuntime->transferTotal & 0xff);
             txRuntime->pdurBuffer.SduLength             =  MaxPayload    ;
             txRuntime->state                            = TX_WAIT_TRANSMIT;
             TransmitRequest_Status                      = E_OK ;
@@ -293,6 +319,7 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
 
         }
     }
+
     else if(txRuntime->state == CANTP_TX_PROCESSING)
     {
         TransmitRequest_Status = E_NOT_OK ;
@@ -387,7 +414,7 @@ void CanTp_MainFunction(void)
                 /* No need for break here as we want to go for next case directly not to be delayed for main period time */
             case TX_WAIT_TRANSMIT:
             {
-                ret = sendNextTxFrame(txConfig, txRuntime);
+                ret = SendNextTxFrame(txConfig, txRuntime);
 
                 if ( ret == BUFREQ_OK )
                 {
@@ -518,7 +545,7 @@ void CanTp_MainFunction(void)
                         /*[SWS_CanTp_00341]If the N_Br timer expires and the available buffer size is still not big enough,
                          * the CanTp module shall send a new FC(WAIT) to suspend the N-SDU reception and reload the N_Br timer.*/
 
-                        SendFlowControl(rxConfig, rxRuntime, FLOW_CONTROL_WAIT_FRAME);
+                        SendFlowControlFrame(rxConfig, rxRuntime, FLOW_CONTROL_WAIT_FRAME);
                         rxRuntime->stateTimeoutCount = rxConfig->CanTpNbr; //TODO: start N_Ar timout
 
                     }
@@ -548,8 +575,8 @@ void CanTp_MainFunction(void)
                     PduR_CanTpCopyRxData(cantp_com_rx_or_copy[rxConfig->CanTpRxNSduId], Request, &rxRuntime->Buffersize);
 
                     /* Assign 'NextBlock' with the next block information which in stored IFdata, IFByteCount*/
-                    NextBlock->SduDataPtr = rxRuntime->IFdata;
-                    NextBlock->SduLength  = rxRuntime->IFByteCount;
+                    NextBlock->SduDataPtr = rxRuntime->IfBuffer.IFdataPtr;
+                    NextBlock->SduLength  = rxRuntime->IfBuffer.IFByteCount;
 
                     /* Check if the available PduR buffer size is sufficient for next block or not */
                     if( (rxRuntime->Buffersize) >= (NextBlock->SduLength) )
@@ -568,7 +595,7 @@ void CanTp_MainFunction(void)
                             if(RemainingBytes > 0) /* Reception is finished and waiting for next CF */
                             {
                                 /* as per [SWS_CanTp_00224] mentioned above */
-                                sendFlowControlFrame( rxConfig, rxRuntime, FLOW_CONTROL_CTS_FRAME);
+                                SendFlowControlFrame( rxConfig, rxRuntime, FLOW_CONTROL_CTS_FRAME);
 
                                 /* [SWS_CanTp_00312] The CanTp module shall start a time-out N_Cr at each indication of
                                  * CF reception (except the last one in a block) and at each confirmation of a FC transmission
@@ -677,7 +704,7 @@ void CanTp_TxConfirmation(PduIdType TxPduId, Std_ReturnType result)
         case E_OK:
             if(txRuntime->state == TX_WAIT_TX_CONFIRMATION)
             {
-                handleNextTxFrameSent(txConfig, txRuntime);
+                HandleNextTxFrame(txConfig, txRuntime);
             }
             else
             {
@@ -815,7 +842,7 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
 #if DET_ERROR_STATUS == STD_ON
             Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_PADDING);
 #endif
-            PduR_CanTpRxIndication(CanTpRxNSdu[RxPduId].CanTpTxNSduId, E_NOT_OK);
+            PduR_CanTpRxIndication(cantp_com_rx_or_copy[RxPduId], E_NOT_OK);
         }
         else
         {
@@ -845,7 +872,7 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
 #if DET_ERROR_STATUS == STD_ON
                 Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_PADDING);
 #endif
-                PduR_CanTpRxIndication(id, E_NOT_OK);
+                PduR_CanTpRxIndication(cantp_com_rx_or_copy[RxPduId], E_NOT_OK);
             }
             else /* At Last CF   */
             {
@@ -872,7 +899,7 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
 #if DET_ERROR_STATUS == STD_ON
             Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_PADDING);
 #endif
-            PduR_CanTpTxConfirmation(&CanTpTxNSdu[RxPduId].CanTpTxNPduConfirmationPduId, E_NOT_OK);
+            PduR_CanTpTxConfirmation(cantp_com_rx_or_copy[RxPduId], E_NOT_OK);
         }
         else
         {
@@ -910,7 +937,7 @@ static BufReq_ReturnType SendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeI
     RetryInfoType* retry = NULL_PTR;
 
     /* make SduDataPtr point to first byte of Payload data */
-    txRuntime->pdurBuffer.SduDataPtr = & (txRuntime->IFdata[txRuntime->IFByteCount]);
+    txRuntime->pdurBuffer.SduDataPtr = & (txRuntime->IfBuffer.IFdataPtr[txRuntime->IfBuffer.IFByteCount]);
 
     if (txRuntime->availableDataSize == 0)           /* in case of SF or FF, no data left unsent */
     {
@@ -922,28 +949,28 @@ static BufReq_ReturnType SendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeI
     {
         /* Value of MAX_PAYLOAD of each frame differentiates depending on the addressing mode whether
          * it's standard or extended Addressing modes */
-        if ( (txRuntime->availableDataSize) > MAX_PAYLOAD_CF)        /* in case of Full CF */
+        if ( (txRuntime->availableDataSize) > MAX_PAYLOAD_STANDRAD_CF)        /* in case of Full CF */
         {
-            (txRuntime->pdurBuffer.SduLength) =  MAX_PAYLOAD_CF;
+            (txRuntime->pdurBuffer.SduLength) =  MAX_PAYLOAD_STANDRAD_CF;
         }
-        else if ( (txRuntime->availableDataSize) <= MAX_PAYLOAD_CF)  /* in case of Last CF */
+        else if ( (txRuntime->availableDataSize) <= MAX_PAYLOAD_STANDRAD_CF)  /* in case of Last CF */
         {
             (txRuntime->pdurBuffer.SduLength) = (txRuntime->availableDataSize);
         }
 
         ret                               = PduR_CanTpCopyTxData(cantp_com_copy_tx[txConfig->CanTpTxNSduId],&txRuntime->pdurBuffer,retry,&txRuntime->availableDataSize);
         /* copying Data from pdurBuffer to canFrameBuffer and all in runtime */
-        txRuntime->IFdata                 = txRuntime->pdurBuffer.SduDataPtr;
+        txRuntime->IfBuffer.IFdataPtr                 = txRuntime->pdurBuffer.SduDataPtr;
         /* Updating total transfered amount of bytes */
         txRuntime->transferCount         += txRuntime->pdurBuffer.SduLength;
         /* Updating total number of bytes to be transmitted to CanIF */
-        txRuntime->IFByteCount           += txRuntime->pdurBuffer.SduLength;
+        txRuntime->IfBuffer.IFByteCount           += txRuntime->pdurBuffer.SduLength;
     }
 
     if(BUFREQ_OK == ret) /* data copied successfully */
     {
-        pduInfo.SduDataPtr = txRuntime->IFdata;
-        pduInfo.SduLength  = txRuntime->IFByteCount;
+        pduInfo.SduDataPtr = txRuntime->IfBuffer.IFdataPtr;
+        pduInfo.SduLength  = txRuntime->IfBuffer.IFByteCount;
 
         if (txConfig->CanTpTxPaddingActivation == CANTP_ON)
         {
@@ -1014,14 +1041,14 @@ static void HandleNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRu
     txRuntime->framesHandledCount++;
 
     /* Prepare TX buffer for next frame to be sent */
-    txRuntime->IFByteCount = 0;
+    txRuntime->IfBuffer.IFByteCount = 0;
 
 #if (CANTP_USE_EXTENDED_ADDRESSING == STD_ON)   /* for Extended Addressing Mode */
     txRuntime->IFByteCount++;
 #endif
 
     /* To prepare First byte in CF */
-    txRuntime->IFdata[txRuntime->IFByteCount++] = (txRuntime->framesHandledCount & SEGMENT_NUMBER_MASK) + ISO15765_TPCI_CF;
+    txRuntime->IfBuffer.IFdataPtr[txRuntime->IfBuffer.IFByteCount++] = (txRuntime->framesHandledCount & SEGMENT_NUMBER_MASK) + ISO15765_TPCI_CF;
 
     /* Decrement nextFlowControlCount each time entering function indicating
      * how much frames i need to send later until the state of waiting for FC Frame */
@@ -1060,7 +1087,7 @@ static void HandleNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRu
         txRuntime->stateTimeoutCount = (txConfig->CanTpNcs);
 
         /* Sending Next frame using the function responsible for calling PduR_CanTpCopyTxData() function */
-        resp = sendNextTxFrame(txConfig, txRuntime);
+        resp = SendNextTxFrame(txConfig, txRuntime);
 
         switch(resp)
         {
@@ -1240,11 +1267,11 @@ static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s
 {
     uint8 indexCount                        = 0;
     uint8 segmentNumber                     = 0;
-    PduLengthType currentSegmentSize        = 0;
-    PduLengthType bytesCopiedToPdurRxBuffer = 0;
+    //PduLengthType currentSegmentSize        = 0;
+    //PduLengthType bytesCopiedToPdurRxBuffer = 0;
     BufReq_ReturnType ret                   = BUFREQ_E_NOT_OK;
 
-    PduInfoType *info = rxPduData;
+    PduInfoType *info = NULL_PTR;
     uint8 id          = cantp_com_rx_or_copy[rxConfig->CanTpRxNSduId] ;
 
     //TODO: if(mode == CanTp_Rx_PROCESSING) ---> FF sets the mode to be processing,
@@ -1336,7 +1363,8 @@ static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s
                     //TODO: check BS size f next block VS Buffer size available of pduR
                     //if no buffer available for next block --> RX_WAIT_SDU_BUFFER, start N_Br and CANTP_RX_PROCESSING
 
-                    sendFlowControlFrame(rxConfig, rxRuntime, FS);
+                    rxRuntime->state = RX_WAIT_SDU_BUFFER;
+                    rxRuntime->mode  = CANTP_RX_PROCESSING;
                 }
                 else /* ret == BUFREQ_E_NOT_OK */
                 {
@@ -1431,7 +1459,7 @@ static void ReceiveSingleFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s 
         PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_NOT_OK);
 
         /* Start new Reception */
-        CanTP_StartNewRx(rxRuntimeParam);
+        StartNewReception(rxRuntimeParam);
     }
     else
     {
@@ -1491,7 +1519,8 @@ static void ReceiveSingleFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s 
         else
         {
             /* TODO Change ID */
-            /* Id           ->  dentification of the received I-PDU.
+            /* Id           ->  dent
+ication of the received I-PDU.
              * info         -> Provides the source buffer (SduDataPtr) and the number of
                                bytes to be copied
              *bufferSizePtr -> Available receive buffer after data has been copied.
@@ -1572,7 +1601,7 @@ static void ReceiveFirstFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *
         PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_NOT_OK);
 
         /* Start new Reception */
-        CanTP_StartNewRx(rxRuntimeParam);
+        StartNewReception(rxRuntimeParam);
     }
     else
     {
@@ -1755,7 +1784,7 @@ static void ReceiveFirstFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *
  * Return value      : None                                                                          *
  * Description       : Receiver Send Flow Control                                                    *
  *****************************************************************************************************/
-static void SendFlowControlFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, BufReq_ReturnType FlowControlStatus)
+static void SendFlowControlFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, FrameType FlowControlStatus)
 {
     BufReq_ReturnType  TransmitReqCanIf_Status = BUFREQ_E_NOT_OK ;
     PduInfoType txFlowControlData;

@@ -6,11 +6,11 @@
 // if value of any index equals 0 is not used 
 // it will not be accesed in the run time 
   
- #define cantp_canif_tx  \ 
+ #define cantp_canif_tx \
    0,\
    22
            
- #define CanTpTxFcNPdu_canif  \ 
+ #define CanTpTxFcNPdu_canif \
      4,\
      3
            

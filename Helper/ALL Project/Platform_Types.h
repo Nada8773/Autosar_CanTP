@@ -32,13 +32,13 @@
 /*****************************************************************************/
 #define CPU_BIT_ORDER       LSB_FIRST
 
-#if __little_endian__
+#ifdef __little_endian__
   #define CPU_BYTE_ORDER    LOW_BYTE_FIRST
 #else
   #define CPU_BYTE_ORDER    HIGH_BYTE_FIRST
 #endif
 
-#define CPU_BYTE_ORDER    LOW_BYTE_FIRST
+//#define CPU_BYTE_ORDER    LOW_BYTE_FIRST
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */

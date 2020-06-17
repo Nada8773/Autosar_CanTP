@@ -193,6 +193,14 @@ typedef struct
 
 }ChannelInfo_s;
 
+
+/* User-defined structure to hold information regarding CanIF */
+typedef struct
+{
+    uint8                  *IFdataPtr;
+    PduLengthType          IFByteCount;
+}IfInfoType;
+
 /**************** RunTimeInfo Structure ****************/
 typedef struct
 {
@@ -209,8 +217,7 @@ typedef struct
     uint32                        transferCount;
     uint32                        availableDataSize;
     PduInfoType                   pdurBuffer;       // The PDUR make an instance of this.
-    PduLengthType                 IFByteCount;
-    PduLengthType                 IFdata[MAX_SEGMENT_DATA_SIZE];
+    IfInfoType                    IfBuffer;
     CanTp_TransferInstanceMode    mode;
     PduLengthType                 Buffersize;
     
