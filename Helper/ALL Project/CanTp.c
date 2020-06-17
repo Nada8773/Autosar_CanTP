@@ -118,7 +118,7 @@ const CanTpTxNSdu_s G_CanTpTxNSdu[CANTP_NSDU_CONFIG_LIST_SIZE_TX];
 const CanTpRxNSdu_s G_CanTpRxNSdu[CANTP_NSDU_CONFIG_LIST_SIZE_RX];
 
 /* Global array of ChannelInfo to hold Channel Configurations */
-ChannelInfo_s ChannelInfo[MAX_CHANNEL_COUNT];
+//ChannelInfo_s ChannelInfo[MAX_CHANNEL_COUNT];
 
 /* Global Runtime Object */
 RunTimeInfo_s CanTpRunTimeTxData[CANTP_NSDU_CONFIG_LIST_SIZE_TX];

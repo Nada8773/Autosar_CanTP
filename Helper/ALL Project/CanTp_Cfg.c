@@ -84,7 +84,7 @@ ChannelInfo_s ChannelInfo[] =
 				.Mode         	 =			 CANTP_MODE_FULL_DUPLEX,  // it can also take this value (CANTP_MODE_HALF_DUPLEX)
 				.StIdx			 = 				 1,
 				.Length			 = 				 1,
- },
+ }
 };
 
 
