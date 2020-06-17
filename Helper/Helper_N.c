@@ -43,15 +43,14 @@ const CanTpRxNSdu_s G_CanTpRxNSdu[CANTP_NSDU_CONFIG_LIST_SIZE_RX];
 ChannelInfo_s ChannelInfo[MAX_CHANNEL_COUNT];
 
 /* Global Runtime Object */
-RunTimeInfo_s CanTpRunTimeTxData[MAX_CHANNEL_COUNT] =
-{       .initRun = FALSE,
-        .internalState = CANTP_OFF,
-};
+RunTimeInfo_s CanTpRunTimeTxData[CANTP_NSDU_CONFIG_LIST_SIZE_TX];
+RunTimeInfo_s CanTpRunTimeRxData[CANTP_NSDU_CONFIG_LIST_SIZE_RX];
 
-RunTimeInfo_s CanTpRunTimeRxData[MAX_CHANNEL_COUNT] =
-{       .initRun = FALSE,
-        .internalState = CANTP_OFF,
-};
+/* [SWS_CanTp_00027] The CanTp module shall have two internal states, CANTP_OFF and CANTP_ON. */
+/* [SWS_CanTp_00168] The CanTp module shall be in the CANTP_OFF state after power up. */
+
+/* Static Global Variable to hold CanTp Internal State {CANTP_OFF,CANTP_ON}*/
+static CanTp_InternalStateType InternalState = (CanTp_InternalStateType)CANTP_OFF;
 
 /*******************************************************************************************
  * Service name      : CanTp_Init                                                          *
@@ -68,21 +67,48 @@ void CanTp_Init(const CanTp_ConfigType* CfgPtr)
 {
     //const  CanTpTxNSdu_s *txConfig   = NULL_PTR;
     //const  CanTpRxNSdu_s *rxConfig   = NULL_PTR;
-    RunTimeInfo_s *txRuntime         = NULL_PTR;
-    RunTimeInfo_s *rxRuntime         = NULL_PTR;
-
+    
+    
+    /* [SWS_CanTp_00030] The function CanTp_Init shall initialize all global variables of the module and sets
+     * all transport protocol connections in a sub-state of CANTP_ON, in which neither segmented transmission
+     * nor segmented reception are in progress (Rx thread in state CANTP_RX_WAIT and Tx thread in state CANTP_TX_WAIT). (SRS_Can_01075)*/
+ 
     for( ChannelCounter=0; ChannelCounter < MAX_CHANNEL_COUNT; ChannelCounter++ ) //TODO: replace for loop if possible
     {
-        txRuntime = (RunTimeInfo_s*)&CanTpRunTimeTxData[ChannelInfo[ChannelCounter].StIdx];
-        rxRuntime = (RunTimeInfo_s*)&CanTpRunTimeRxData[ChannelInfo[ChannelCounter].StIdx];
-
-        StartNewTransmission(txRuntime);
-        StartNewReception(rxRuntime);
+        StartNewTransmission(&CanTpRunTimeTxData[ChannelInfo[ChannelCounter].StIdx]);
+        StartNewReception(&CanTpRunTimeRxData[ChannelInfo[ChannelCounter].StIdx]);
     }
 
+    /* [ SWS_CanTp_00170] The CanTp module shall change to the internal state CANTP_ON 
+     * when the CanTp has been successfully initialized with CanTp_Init(). (SRS_Can_01075)*/
 
-   /* Put CanTp_ON */
+    /* Putting CanTp Module in the ON state to let other functions work */
+    InternalState = (CanTp_InternalStateType)CANTP_ON;
+    
+  
 
+}
+
+/*******************************************************************************************
+ * Service name      : CanTp_Shutdown                                                      *
+ * Service ID        : 0x02                                                                *
+ * Sync/Async        : Synchronous                                                         *
+ * Reentrancy        : Non Reentrant                                                       *
+ * Parameters (in)   : None                                                                *
+ * Parameters (inout): None                                                                *
+ * Parameters (out)  : None                                                                *
+ * Return value      : None                                                                *
+ * Description       : This function is called to shutdown the CanTp module.               *
+ *******************************************************************************************/
+void CanTp_Shutdown(void)
+{
+  /* [SWS_CanTp_00202] ⌈The function CanTp_Shutdown shall close all pending transport protocol connections,
+   * free all resources and set the CanTp module into the CANTP_OFF state. */
+  
+  /*[SWS_CanTp_00010] ⌈The function CanTp_Shutdown shall stop the CanTp module properly.(SRS_BSW_00336)*/
+  
+  /* Putting CanTp Module in the OFF state to stop module safely */
+  InternalState = (CanTp_InternalStateType)CANTP_OFF;
 }
 
 /*************************************************************************************************
@@ -113,7 +139,7 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
     txConfig    =  &G_CanTpTxNSdu[TxPduId] ;
     txRuntime   =  &CanTpRunTimeTxData[TxPduId] ;
 
-    if( CanTpRunTimeData.internalState == CANTP_OFF )
+    if( InternalState == CANTP_OFF )
     {
 #if DET_ERROR_STATUS == STD_ON
         /* API service used without module initialization : On any API call except CanTp_Init() and
@@ -245,7 +271,7 @@ void CanTp_MainFunction(void)
      * the CanTp is in the CANTP_ON state. */
 
     /* Checking that CanTp is in the CANTP_ON state which means that's initialized before */
-    if(RunTimeInfo.internalState != CANTP_ON)
+    if( InternalState != CANTP_ON)
     {
         /* [SWS_CanTp_00031] If development error detection for the CanTp module is enabled the CanTp module
          * shall raise an error (CANTP_E_UNINIT) when the PDU Router or CAN Interface tries to use any function
@@ -558,7 +584,11 @@ void CanTp_TxConfirmation(PduIdType TxPduId, Std_ReturnType result)
     /* [SWS_CanTp_00111] If called when the CanTp module is in the global state CANTP_ON,
                              the function CanTp_Init shall return the module to state Idle
                              (state = CANTP_ON, but neither transmission nor reception are in progress */
-    if( CanTpRunTimeData.internalState == CANTP_OFF )
+                             
+    /* [SWS_CanTp_00238] The CanTp module shall perform segmentation and reassembly tasks only when
+     * the CanTp is in the CANTP_ON state. */
+     
+    if( InternalState == CANTP_OFF )
     {
 #if DET_ERROR_STATUS == STD_ON
         /* API service used without module initialization : On any API call except CanTp_Init() and
@@ -636,7 +666,12 @@ void CanTp_RxIndication(PduIdType RxPduId, const PduInfoType* PduInfoPtr)
     /* [SWS_CanTp_00111] If called when the CanTp module is in the global state CANTP_ON,
                          the function CanTp_Init shall return the module to state Idle
                          (state = CANTP_ON, but neither transmission nor reception are in progress */
-    else if(CanTpRunTimeData.internalState == CANTP_OFF)
+                         
+    /* [SWS_CanTp_00030] The function CanTp_Init shall initialize all global variables of the module and sets
+     * all transport protocol connections in a sub-state of CANTP_ON, in which neither segmented transmission
+     * nor segmented reception are in progress (Rx thread in state CANTP_RX_WAIT and Tx thread in state CANTP_TX_WAIT). (SRS_Can_01075)*/
+
+    else if( InternalState == CANTP_OFF)
     {
 #if DET_ERROR_STATUS == STD_ON
         /* API service used without module initialization : On any API call except CanTp_Init() and
@@ -1803,6 +1838,10 @@ static void PadFrame(PduInfoType *PduInfoPtr)
  ***************************************************************************************************/
 static void StartNewReception(RunTimeInfo_s *rxRuntimeParam)
 {
+    /*[SWS_CanTp_00030] The function CanTp_Init shall initialize all global variables of the module and sets
+     * all transport protocol connections in a sub-state of CANTP_ON, in which neither segmented transmission
+     * nor segmented reception are in progress (Rx thread in state CANTP_RX_WAIT and Tx thread in state CANTP_TX_WAIT). (SRS_Can_01075)*/
+  
     rxRuntimeParam->state                 = IDLE          ;
     rxRuntimeParam->mode                  = CANTP_RX_WAIT ;
     rxRuntimeParam->transferTotal         = 0;
@@ -1828,6 +1867,10 @@ static void StartNewReception(RunTimeInfo_s *rxRuntimeParam)
  ***************************************************************************************************/
 static void StartNewTransmission(RunTimeInfo_s *txRuntimeParam)
 {
+    /*[SWS_CanTp_00030] The function CanTp_Init shall initialize all global variables of the module and sets
+     * all transport protocol connections in a sub-state of CANTP_ON, in which neither segmented transmission
+     * nor segmented reception are in progress (Rx thread in state CANTP_RX_WAIT and Tx thread in state CANTP_TX_WAIT). (SRS_Can_01075)*/
+     
     txRuntimeParam->state                 = IDLE          ;
     txRuntimeParam->mode                  = CANTP_TX_WAIT ;
     txRuntimeParam->transferTotal         = 0;

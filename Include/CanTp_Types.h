@@ -3,6 +3,9 @@
 #ifndef CANTP_TYPES_H_
 #define CANTP_TYPES_H_
 
+#include "CanTp_Cfg.h"
+
+
 #define SEGMENT_NUMBER_MASK                            (uint8)0x0F
 
 #define MAX_FRAME_BYTES                                 8U
@@ -14,6 +17,9 @@
 #define MAX_PAYLOAD_EXTENDED_SF                         6U
 #define MAX_PAYLOAD_EXTENDED_FF                         5U
 #define MAX_PAYLOAD_EXTENDED_CF                         6U
+
+typedef uint8 CanTp_PaddingActivationType;
+typedef uint8 CanTp_InternalStateType;
 
 #define CANTP_OFF                                       0U
 #define CANTP_ON                                        1U
@@ -186,7 +192,7 @@ typedef struct
 /**************** RunTimeInfo Structure ****************/
 typedef struct
 {
-    uint8                         internalState;
+  
     uint16                        nextFlowControlCount;
     uint16                        framesHandledCount;
     uint32                        stateTimeoutCount;
@@ -200,10 +206,10 @@ typedef struct
     uint32                        availableDataSize;
     PduInfoType                   pdurBuffer;       // The PDUR make an instance of this.
     PduLengthType                 IFByteCount;
-    PduLengthType                 IFdata[MaxSegSize];
+    PduLengthType                 IFdata[MAX_SEGMENT_DATA_SIZE];
     CanTp_TransferInstanceMode    mode;
     PduLengthType                 Buffersize;
-
+    
 }RunTimeInfo_s;
 
 
