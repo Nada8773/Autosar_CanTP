@@ -50,16 +50,16 @@ typedef uint8 TransferStateTypes;
 #define TX_WAIT_TRANSMIT                                        (TransferStateTypes)0x06
 #define TX_WAIT_FLOW_CONTROL                                    (TransferStateTypes)0x07
 #define TX_WAIT_TX_CONFIRMATION                                 (TransferStateTypes)0x08
+#define RX_WAIT_TX_CONFIRMATION									(TransferStateTypes)0x09
 
 typedef uint8 ChannelModeType;
 #define CANTP_MODE_FULL_DUPLEX                                     (ChannelModeType)0x00
 #define CANTP_MODE_HALF_DUPLEX                                     (ChannelModeType)0x01
 
-#if 0
+
 typedef uint8 TaType;
 #define CANTP_FUNCTIONAL                                                    (TaType)0x00
 #define CANTP_PHYSICAL                                                      (TaType)0x01
-#endif
 
 typedef uint8 AddressingFormatType;
 #define CANTP_EXTENDED                                        (AddressingFormatType)0x00
@@ -107,6 +107,11 @@ typedef struct
                                                             Consecutive Frame N_PDU. */
 
     boolean                CanTpTc;                      /* Switch for enabling Transmit Cancellation. */
+
+    uint8                  CanTpTxAddressingFormat ;     /* Declares which communication addressing format is supported for this TxNSdu.
+                                                            Definition of Enumeration values:
+                                                                  CanTpStandard & CanTpExtended &
+                                                                  CanTpMixed & CanTpNormalFixed &CanTpMixed29Bit  */
 
     uint16                 CanTpTxNSduId;                /* Unique identifier to a structure that contains all useful information to
                                                             process the transmission of a TxNsdu. */
@@ -189,6 +194,14 @@ typedef struct
 
 }ChannelInfo_s;
 
+
+/* User-defined structure to hold information regarding CanIF */
+typedef struct
+{
+    uint8                  *IFdataPtr;
+    PduLengthType          IFByteCount;
+}IfInfoType;
+
 /**************** RunTimeInfo Structure ****************/
 typedef struct
 {
@@ -205,8 +218,7 @@ typedef struct
     uint32                        transferCount;
     uint32                        availableDataSize;
     PduInfoType                   pdurBuffer;       // The PDUR make an instance of this.
-    PduLengthType                 IFByteCount;
-    PduLengthType                 IFdata[MAX_SEGMENT_DATA_SIZE];
+    IfInfoType                    IfBuffer;
     CanTp_TransferInstanceMode    mode;
     PduLengthType                 Buffersize;
     

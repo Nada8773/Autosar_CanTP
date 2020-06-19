@@ -18,7 +18,7 @@
 #define CANTP_CFG_H_
 
 #define CANTP_PADDING_BYTE                         0U
-#define DET_ERROR_STATUS                           STD_ON
+#define DET_ERROR_STATUS                           STD_OFF
 
 #define CANTP_USE_STANDARD_CAN                     STD_ON
 #define CANTP_USE_CAN_FD                           STD_OFF
@@ -36,13 +36,12 @@
 #define CANTP_NSDU_CONFIG_LIST_SIZE_RX  2
 #define CANTP_NSDU_CONFIG_LIST_SIZE_TX  2
 
-#define MAX_CHANNEL_COUNT               1
+#define MAX_CHANNEL_COUNT               2
 
 #define MAIN_FUNCTION_PERIOD_SECONDS    1
 
-/* Extern Configuration Arrays */
-extern const CanTpTxNSdu_s CanTpTxNSdu[];
-extern const CanTpRxNSdu_s CanTpRxNSdu[];
+
+
 
 
 

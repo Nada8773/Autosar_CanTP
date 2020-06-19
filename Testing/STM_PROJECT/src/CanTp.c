@@ -1,4 +1,4 @@
-/*******************************************************************************************
+﻿/*******************************************************************************************
  *                                                                                          *
  * File Name   : CanTp.c                                                                    *
  *                                                                                          *
@@ -862,10 +862,10 @@ void CanTp_RxIndication(PduIdType RxPduId, const PduInfoType* PduInfoPtr)
 
 /*****************************************************************************************************
  * Service name      : HandleReceivedFrame                                                           *
- * Parameters (in)   : RxPduId ID of the received PDU.                                               *
- *                     CanTpPduData Contains the length (SduLength) of the received PDU,             *
- *                     a pointer to a buffer (SduDataPtr) containing the PDU, and the MetaData       *
- *                     related to this PDU.                                                          *
+ * Parameters (in)   : RxPduId      -> ID of the received PDU.                                       *
+ *                     CanTpPduData -> Contains the length (SduLength) of the received PDU,          *
+ *                                     a pointer to a buffer (SduDataPtr) containing the PDU,        *
+ *                                     and the MetaData  related to this PDU.                        *
  * Parameters (inout): None                                                                          *
  * Parameters (out)  : None                                                                          *
  * Return value      : None                                                                          *
@@ -987,15 +987,13 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
 
 
 /*****************************************************************************************************
- * Service name      : SendNextTxFrame                                                          *
- * Parameters (in)   : RxPduId ID of the received PDU.                                               *
- *                     CanTpPduData Contains the length (SduLength) of the received PDU,             *
- *                     a pointer to a buffer (SduDataPtr) containing the PDU, and the MetaData       *
- *                     related to this PDU.                                                          *
+ * Service name      : SendNextTxFrame                                                               *
+ * Parameters (in)   : txConfig       -> Pointer to  CanTpTxNSdu_s container                         *
+ *                     txRuntime      -> Pointer to RunTimeInfo_s container                          *
  * Parameters (inout): None                                                                          *
  * Parameters (out)  : None                                                                          *
  * Return value      : None                                                                          *
- * Description       : Function Used By CanTp_RxIndication To Get the FrameType and Receive Data     *
+ * Description       : Get Data From Pdur to Cantp                                                   *
  *****************************************************************************************************/
 static BufReq_ReturnType SendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime)
 {
@@ -1127,15 +1125,13 @@ static BufReq_ReturnType SendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeI
 }
 
 /*****************************************************************************************************
- * Service name      : HandleNextTxFrame                                                         *
- * Parameters (in)   : RxPduId ID of the received PDU.                                               *
- *                     CanTpPduData Contains the length (SduLength) of the received PDU,             *
- *                     a pointer to a buffer (SduDataPtr) containing the PDU, and the MetaData       *
- *                     related to this PDU.                                                          *
+ * Service name      : HandleNextTxFrame                                                             *
+ * Parameters (in)   : txConfig       -> Pointer to  CanTpTxNSdu_s container                         *
+ *                     txRuntime      -> Pointer to RunTimeInfo_s container                          *
  * Parameters (inout): None                                                                          *
  * Parameters (out)  : None                                                                          *
  * Return value      : None                                                                          *
- * Description       : Function Used By CanTp_RxIndication To Get the FrameType and Receive Data     *
+ * Description       : Handle next Consective Frame To Transmit                                      *
  *****************************************************************************************************/
 static void HandleNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime)
 {
@@ -1251,15 +1247,14 @@ static void HandleNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRu
 }
 
 /*****************************************************************************************************
- * Service name      : ReceiveFlowControlFrame                                                           *
- * Parameters (in)   : RxPduId ID of the received PDU.                                               *
- *                     CanTpPduData Contains the length (SduLength) of the received PDU,             *
- *                     a pointer to a buffer (SduDataPtr) containing the PDU, and the MetaData       *
- *                     related to this PDU.                                                          *
+ * Service name      : ReceiveFlowControlFrame                                                       *
+ * Parameters (in)   : txConfig       -> Pointer to  CanTpRxNSdu_s container                         *
+ *                     txRuntime      -> Pointer to RunTimeInfo_s container                          *
+ *                     PduData        -> Pointer to PduInfoType Container                            *
  * Parameters (inout): None                                                                          *
  * Parameters (out)  : None                                                                          *
  * Return value      : None                                                                          *
- * Description       : Function Used By CanTp_RxIndication To Get the FrameType and Receive Data     *
+ * Description       : Receive Flow Control Frame                                                    *
  *****************************************************************************************************/
 static void ReceiveFlowControlFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime, const PduInfoType *PduData)
 {
@@ -1338,17 +1333,15 @@ static void ReceiveFlowControlFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s
 
 }
 
-
 /*****************************************************************************************************
- * Service name      : ReceiveConsecutiveFrame                                                          *
- * Parameters (in)   : RxPduId ID of the received PDU.                                               *
- *                     CanTpPduData Contains the length (SduLength) of the received PDU,             *
- *                     a pointer to a buffer (SduDataPtr) containing the PDU, and the MetaData       *
- *                     related to this PDU.                                                          *
+ * Service name      : ReceiveConsecutiveFrame                                                       *
+ * Parameters (in)   : rxConfig       -> Pointer to  CanTpRxNSdu_s container                         *
+ *                     rxRuntime      -> Pointer to RunTimeInfo_s container                          *
+ *                     rxPduData      -> Pointer to PduInfoType Container                            *
  * Parameters (inout): None                                                                          *
  * Parameters (out)  : None                                                                          *
  * Return value      : None                                                                          *
- * Description       : Function Used By CanTp_RxIndication To Get the FrameType and Receive Data     *
+ * Description       : Copy Cantp Received Data to Pdur  for Consective Frame                        *
  *****************************************************************************************************/
 static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntime, const PduInfoType *rxPduData)
 {
@@ -2017,10 +2010,8 @@ static void SendFlowControlFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_
 }
 
 /***************************************************************************************************
- * Service name      : SetPaddingValue                                                             *
- * Parameters (in)   : NSduData           -> Pointer to FC Frame                                   *
- *                     Start_IndexCount   -> start byte used padding                               *
- *                     CanTp_PaddingByte  -> Byte Value                                            *
+ * Service name      : PadFrame                                                                    *
+ * Parameters (in)   : PduInfoPtr -> Pointer To PduInfoType Container                              *
  * Parameters (inout): None                                                                        *
  * Parameters (out)  : None                                                                        *
  * Return value      : None                                                                        *
@@ -2037,16 +2028,14 @@ static void PadFrame(PduInfoType *PduInfoPtr)
 }
 
 
-/***************************************************************************************************
- * Service name      : StartNewReception                                                             *
- * Parameters (in)   : NSduData           -> Pointer to FC Frame                                   *
- *                     Start_IndexCount   -> start byte used padding                               *
- *                     CanTp_PaddingByte  -> Byte Value                                            *
- * Parameters (inout): None                                                                        *
- * Parameters (out)  : None                                                                        *
- * Return value      : None                                                                        *
- * Description       : Used for the initialization of unused bytes with a certain value            *
- ***************************************************************************************************/
+/**************************************************************************************************
+ * Service name      : StartNewReception                                                          *
+ * Parameters (in)   : rxRuntimeParam -> Pointer to the container RunTimeInfo_s                   *
+ * Parameters (inout): None                                                                       *
+ * Parameters (out)  : None                                                                       *
+ * Return value      : None                                                                       *
+ * Description       : Used to initialize the Runtime value that will used in Receiption          *
+ **************************************************************************************************/
 static void StartNewReception(RunTimeInfo_s *rxRuntimeParam)
 {
     /*[SWS_CanTp_00030] The function CanTp_Init shall initialize all global variables of the module and sets
@@ -2067,14 +2056,12 @@ static void StartNewReception(RunTimeInfo_s *rxRuntimeParam)
 
 
 /***************************************************************************************************
- * Service name      : StartNewTransmission                                                             *
- * Parameters (in)   : NSduData           -> Pointer to FC Frame                                   *
- *                     Start_IndexCount   -> start byte used padding                               *
- *                     CanTp_PaddingByte  -> Byte Value                                            *
+ * Service name      : StartNewTransmission                                                        *
+ * Parameters (in)   : txRuntimeParam -> Pointer to the container RunTimeInfo_s                    *
  * Parameters (inout): None                                                                        *
  * Parameters (out)  : None                                                                        *
  * Return value      : None                                                                        *
- * Description       : Used for the initialization of unused bytes with a certain value            *
+ * Description       : Used to initialize the Runtime value that will used in transmission         *
  ***************************************************************************************************/
 static void StartNewTransmission(RunTimeInfo_s *txRuntimeParam)
 {

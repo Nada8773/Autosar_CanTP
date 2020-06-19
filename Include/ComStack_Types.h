@@ -20,7 +20,7 @@
 
 
 #include "Std_Types.h"
-#include "ComStack_Cfg.h"
+//#include "ComStack_Cfg.h" /* TODO include it when Test with com */
 
 /* This type is used within the entire AUTOSAR Com Stack except for bus drivers
  * Zero-based integer number The size of this global type depends on the maximum number of PDUs used within one software module.
