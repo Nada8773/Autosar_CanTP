@@ -118,37 +118,19 @@ static void Task_1( void *pvParameters ) // every 1 sec
 //TASK(T2) // every 5 sec
 static void Task_2( void *pvParameters )
 {
-    // Transmit();
-
-    uint8 Array[]= {'M','o','h','a','m','e','d','F','a','r','a','g','i','s','g','o','o','d'};
+    uint8 Array[]= {'I','T','I','_','4','0','_','C','a','n','T','p','_','T','e','a','m'};
     PduInfoType Frame;
 
     Frame.SduDataPtr = Array;
-    Frame.SduLength=18;
+    Frame.SduLength=17;
 
-
-
-    uint8 Array1[] = {0x10,0x0C,'M','o','h','a','m','e'};       //{SF,FF
-    uint8 Array2[] = {0x21, 'd' ,'F','a','r','a','g'};          /* segment number = 1 */
-    PduInfoType FF;
-    PduInfoType CF;
-
-    FF.SduDataPtr = Array1;
-    FF.SduLength=8;
-    /* Lazm ykon >= 8 3shan my7slsh return */
-    CF.SduDataPtr = Array2;
-    CF.SduLength=7;
 
     while(1)
     {
         if (flag == 1)
         {
-            /* Transmit **********/
+            /* Transmit */
             CanTp_Transmit((uint16)1, &Frame);
-
-            /* Receive ***********/
-            /*CanTp_RxIndication(1,&FF);
-           CanTp_RxIndication(1,&CF);*/
 
             flag = 0;
         }
