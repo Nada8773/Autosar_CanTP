@@ -17,6 +17,9 @@
 #ifndef CANTP_CFG_H_
 #define CANTP_CFG_H_
 
+#define NUMBER_OF_TXNPDU                           2
+#define NUMBER_OF_RXNPDU                           2
+
 #define CANTP_PADDING_BYTE                         0U
 #define DET_ERROR_STATUS                           STD_OFF
 

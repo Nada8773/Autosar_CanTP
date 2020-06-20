@@ -205,7 +205,6 @@ typedef struct
 /**************** RunTimeInfo Structure ****************/
 typedef struct
 {
-  
     uint16                        nextFlowControlCount;
     uint16                        framesHandledCount;
     uint32                        stateTimeoutCount;

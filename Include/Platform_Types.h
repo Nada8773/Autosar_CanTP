@@ -32,13 +32,13 @@
 /*****************************************************************************/
 #define CPU_BIT_ORDER       LSB_FIRST
 
-#if __little_endian__
+#ifdef __little_endian__
   #define CPU_BYTE_ORDER    LOW_BYTE_FIRST
 #else
   #define CPU_BYTE_ORDER    HIGH_BYTE_FIRST
 #endif
 
-#define CPU_BYTE_ORDER    LOW_BYTE_FIRST
+//#define CPU_BYTE_ORDER    LOW_BYTE_FIRST
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -53,7 +53,7 @@ typedef unsigned long long	uint64;
 typedef signed char         sint8;
 typedef signed short        sint16;
 typedef signed int          sint32;
-typedef signed long long	uint64;
+typedef signed long long	sint64;
 
 typedef unsigned int        uint8_least;
 typedef unsigned int        uint16_least;
