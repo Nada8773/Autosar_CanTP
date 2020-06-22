@@ -79,7 +79,7 @@ RunTimeInfo_s CanTpRunTimeRxData[CANTP_NSDU_CONFIG_LIST_SIZE_RX];
 /* Static Global Variable to hold CanTp Internal State {CANTP_OFF,CANTP_ON}*/
 CanTp_InternalStateType InternalState = (CanTp_InternalStateType)CANTP_OFF;
 
-
+#define CANTP_MODLUE 0
 /*******************************************************************************************
  * Service name      : CanTp_Init                                                          *
  * Service ID        : 0x01                                                                *
@@ -91,7 +91,8 @@ CanTp_InternalStateType InternalState = (CanTp_InternalStateType)CANTP_OFF;
  * Return value      : None                                                                *
  * Description       : This function initializes the CanTp module.                         *
  ********************************************************************************************/
-void CanTp_Init(const CanTp_ConfigType* CfgPtr)
+FUNC(void,CANTP_MODLUE) CanTp_Init(FUNC_P2CONST(CanTp_ConfigType, CANTP_MODLUE, AUTOMATIC) CfgPtr)
+//void CanTp_Init(const CanTp_ConfigType* CfgPtr)
 {
 	VAR(PduIdType,AUTOMATIC) ChannelCounter = 0 ;
 
@@ -123,7 +124,8 @@ void CanTp_Init(const CanTp_ConfigType* CfgPtr)
  * Return value      : None                                                                *
  * Description       : This function is called to shutdown the CanTp module.               *
  *******************************************************************************************/
-void CanTp_Shutdown(void)
+FUNC(void,CANTP_MODLUE) CanTp_Shutdown(void)
+//void CanTp_Shutdown(void)
 {
 	/* [SWS_CanTp_00202] The function CanTp_Shutdown shall close all pending transport protocol connections,
 	 * free all resources and set the CanTp module into the CANTP_OFF state. */
@@ -148,7 +150,8 @@ void CanTp_Shutdown(void)
  *                                    E_NOT_OK: Transmit request has not been accepted.          *                                                   *
  * Description       : Requests transmission of a PDU.                                           *
  *************************************************************************************************/
-Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
+FUNC(Std_ReturnType,CANTP_MODLUE) CanTp_Transmit( VAR(PduIdType,AUTOMATIC) TxPduId, FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC) PduInfoPtr)
+//Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
 {
 	VAR(Std_ReturnType,AUTOMATIC) TransmitRequest_Status = E_NOT_OK;
 
@@ -228,7 +231,8 @@ Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
  * Return value      : None                                           *
  * Description       : The main function for scheduling the CAN TP.   *
  **********************************************************************/
-void CanTp_MainFunction(void)
+FUNC(void,CANTP_MODLUE) CanTp_MainFunction(void)
+//void CanTp_MainFunction(void)
 {
 	VAR(PduIdType, AUTOMATIC) ChannelCounter;
 
@@ -282,7 +286,8 @@ void CanTp_MainFunction(void)
  * Description       : The lower layer communication interface module confirms the transmission *
  *                     of a PDU, or the failure to transmit a PDU.                              *
  ************************************************************************************************/
-void CanTp_TxConfirmation(PduIdType TxPduId, Std_ReturnType result)
+FUNC(void,CANTP_MODLUE) CanTp_TxConfirmation( VAR(PduIdType,AUTOMATIC) TxPduId, VAR(Std_ReturnType,AUTOMATIC) result )
+//void CanTp_TxConfirmation(PduIdType TxPduId, Std_ReturnType result)
 {
 	VAR(FrameType,AUTOMATIC) IDtype;
 
@@ -377,7 +382,8 @@ void CanTp_TxConfirmation(PduIdType TxPduId, Std_ReturnType result)
  *                                    E_NOT_OK: Transmit request has not been accepted.              *
  * Description       :Indication of a received PDU from a lower layer communication interface module *
  *****************************************************************************************************/
-void CanTp_RxIndication(PduIdType RxPduId, const PduInfoType* PduInfoPtr)
+FUNC(void,CANTP_MODLUE) CanTp_RxIndication( VAR(PduIdType,AUTOMATIC) RxPduId, FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC) PduInfoPtr)
+///void CanTp_RxIndication(PduIdType RxPduId, const PduInfoType* PduInfoPtr)
 {
 	/* API service called with a NULL pointer. In case of this error, the API service
       shall return immediately without any further action, besides reporting this
@@ -434,7 +440,8 @@ void CanTp_RxIndication(PduIdType RxPduId, const PduInfoType* PduInfoPtr)
  * Return value      : None                                                                          *
  * Description       : Function Used By CanTp_RxIndication To Get the FrameType and Receive Data     *
  *****************************************************************************************************/
-static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduData)
+LOCAL FUNC(void,CANTP_MODLUE) HandleReceivedFrame( VAR(PduIdType,AUTOMATIC) RxPduId, FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC) CanTpPduData)
+//static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduData)
 {
 	/* TODO Want it as macro ??? */
 	VAR(uint8,AUTOMATIC) CanTpPduDataPCI_Offset;
@@ -556,19 +563,20 @@ static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduDa
  * Return value      : None                                                                          *
  * Description       : Get Data From Pdur to Cantp                                                   *
  *****************************************************************************************************/
-static BufReq_ReturnType SendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime)
+LOCAL FUNC(BufReq_ReturnType,CANTP_MODLUE) SendNextTxFrame( FUNC_P2CONST(CanTpTxNSdu_s, CANTP_MODLUE, AUTOMATIC) txConfig, FUNC_P2VAR(RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) txRuntime )
+//static BufReq_ReturnType SendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime)
 {
 	VAR(BufReq_ReturnType,AUTOMATIC) ret = BUFREQ_E_NOT_OK;
 	VAR(Std_ReturnType,AUTOMATIC) resp;
 	VAR(uint8,AUTOMATIC) canif_id = canif_ids[txConfig->CanTpTxNSduId];
 	VAR(uint8,AUTOMATIC) CanTp_FrameID;
+	VAR(PduInfoType,AUTOMATIC) pduInfo;
 
-	PduInfoType pduInfo;
-
+	FUNC_P2VAR(RetryInfoType, CANTP_MODLUE, AUTOMATIC) retry;
 	/* [SWS_CanTp_00272] The API PduR_CanTpCopyTxData() contains a parameter used for the recovery mechanism – ‘retry’.
 	 * Because ISO 15765-2 does not support such a mechanism, the CAN Transport Layer does not implement
 	 * any kind of recovery. Thus, the parameter is always set to NULL pointer. */
-	RetryInfoType* retry = NULL_PTR;
+	 retry = NULL_PTR;
 
 	/* make SduDataPtr point to first byte of Payload data */
 	//txRuntime->pdurBuffer.SduDataPtr = &CanTpRunTimeTxData[txConfig->CanTpTxNSduId].IfBuffer.IFdataPtr[CanTpRunTimeTxData[txConfig->CanTpTxNSduId].IfBuffer.IFByteCount++];
@@ -696,7 +704,8 @@ static BufReq_ReturnType SendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeI
  * Return value      : None                                                                          *
  * Description       : Handle next Consective Frame To Transmit                                      *
  *****************************************************************************************************/
-static void HandleNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime)
+LOCAL FUNC(void,CANTP_MODLUE) HandleNextTxFrame( FUNC_P2CONST(CanTpTxNSdu_s, CANTP_MODLUE, AUTOMATIC) txConfig, FUNC_P2VAR(RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) txRuntime )
+//static void HandleNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime)
 {
 
 	/* In Case of Last Block of Consecutive Frames is Received (End of Transmission) */
@@ -819,7 +828,10 @@ static void HandleNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRu
  * Return value      : None                                                                          *
  * Description       : Receive Flow Control Frame                                                    *
  *****************************************************************************************************/
-static void ReceiveFlowControlFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime, const PduInfoType *PduData)
+LOCAL FUNC(void,CANTP_MODLUE) ReceiveFlowControlFrame( FUNC_P2CONST(CanTpTxNSdu_s, CANTP_MODLUE, AUTOMATIC) txConfig,
+		                                               FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) txRuntime,
+		                                               FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC) PduData )
+//static void ReceiveFlowControlFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime, const PduInfoType *PduData)
 {
 	VAR(uint8, AUTOMATIC) indexCount = 0;
 
@@ -907,7 +919,11 @@ static void ReceiveFlowControlFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s
  * Return value      : None                                                                          *
  * Description       : Copy Cantp Received Data to Pdur  for Consective Frame                        *
  *****************************************************************************************************/
-static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntime, const PduInfoType *rxPduData)
+LOCAL FUNC(void,CANTP_MODLUE) ReceiveConsecutiveFrame( FUNC_P2CONST(CanTpRxNSdu_s, CANTP_MODLUE, AUTOMATIC) rxConfig,
+		                                               FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) rxRuntime,
+		                                               FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC) rxPduData)
+
+//static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntime, const PduInfoType *rxPduData)
 {
 
 	VAR(uint8, AUTOMATIC) indexCount      = 0;
@@ -1081,7 +1097,10 @@ static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s
  * Return value      : None                                                                          *
  * Description       : Copy Cantp Received Data to Pdur for Single Frame                             *
  *****************************************************************************************************/
-static void ReceiveSingleFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, const PduInfoType *CanTpPduData)
+LOCAL FUNC(void,CANTP_MODLUE) ReceiveSingleFrame( FUNC_P2CONST(CanTpRxNSdu_s, CANTP_MODLUE, AUTOMATIC) rxNSduConfig,
+		                                          FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) rxRuntimeParam,
+		                                          FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC)  CanTpPduData)
+//static void ReceiveSingleFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, const PduInfoType *CanTpPduData)
 {
 	/* TODO Replace it */
 	PduInfoType rxPduData;  /* Pdur Receive Data */
@@ -1223,7 +1242,10 @@ static void ReceiveSingleFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s 
  * Return value      : None                                                                          *
  * Description       : Copy Cantp Received Data to Pdur  for First Frame                             *
  *****************************************************************************************************/
-static void ReceiveFirstFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, const PduInfoType *CanTpPduData)
+LOCAL FUNC(void,CANTP_MODLUE) ReceiveFirstFrame( FUNC_P2CONST(CanTpRxNSdu_s, CANTP_MODLUE, AUTOMATIC) rxNSduConfig,
+		                                          FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) rxRuntimeParam,
+		                                          FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC)  CanTpPduData)
+//static void ReceiveFirstFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, const PduInfoType *CanTpPduData)
 {
 	/* TODO Replace it */
 	PduInfoType rxPduData;  /* Pdur Receive Data */
@@ -1426,12 +1448,16 @@ static void ReceiveFirstFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *
  * Return value      : None                                                                          *
  * Description       : Receiver Send Flow Control                                                    *
  *****************************************************************************************************/
-static void SendFlowControlFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, FrameType FlowControlStatus)
-{
-	/* Replace it */
-	PduInfoType txFlowControlData;
-	uint8 Local_NSduData[8] = {0};
+LOCAL FUNC(void,CANTP_MODLUE) SendFlowControlFrame( FUNC_P2CONST(CanTpRxNSdu_s, CANTP_MODLUE, AUTOMATIC) rxNSduConfig,
+		                                            FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) rxRuntimeParam,
+												    VAR(FrameType, AUTOMATIC) FlowControlStatus)
 
+//static void SendFlowControlFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, FrameType FlowControlStatus)
+{
+
+	VAR(PduInfoType, AUTOMATIC) txFlowControlData;
+
+	VAR(uint8, AUTOMATIC) Local_NSduData[8] = {0};
 	VAR(uint8, AUTOMATIC) Local_IndexCount =0 ;
 	VAR(uint8, AUTOMATIC) Local_BSValue;
 	VAR(BufReq_ReturnType , AUTOMATIC) TransmitReqCanIf_Status = BUFREQ_E_NOT_OK  ;
@@ -1579,7 +1605,8 @@ static void SendFlowControlFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_
  * Return value      : None                                                                        *
  * Description       : Used for the initialization of unused bytes with a certain value            *
  ***************************************************************************************************/
-static void PadFrame(PduInfoType *PduInfoPtr)
+LOCAL FUNC(void,CANTP_MODLUE) PadFrame (FUNC_P2VAR( PduInfoType, CANTP_MODLUE, AUTOMATIC) PduInfoPtr)
+//static void PadFrame(PduInfoType *PduInfoPtr)
 {
 	VAR(uint8, AUTOMATIC) i =0;
 
@@ -1599,7 +1626,8 @@ static void PadFrame(PduInfoType *PduInfoPtr)
  * Return value      : None                                                                       *
  * Description       : Used to initialize the Runtime value that will used in Receiption          *
  **************************************************************************************************/
-static void StartNewReception(RunTimeInfo_s *rxRuntimeParam)
+LOCAL FUNC(void,CANTP_MODLUE) StartNewReception (FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) rxRuntimeParam)
+//static void StartNewReception(RunTimeInfo_s *rxRuntimeParam)
 {
 	/*[SWS_CanTp_00030] The function CanTp_Init shall initialize all global variables of the module and sets
 	 * all transport protocol connections in a sub-state of CANTP_ON, in which neither segmented transmission
@@ -1625,7 +1653,8 @@ static void StartNewReception(RunTimeInfo_s *rxRuntimeParam)
  * Return value      : None                                                                        *
  * Description       : Used to initialize the Runtime value that will used in transmission         *
  ***************************************************************************************************/
-static void StartNewTransmission(RunTimeInfo_s *txRuntimeParam)
+LOCAL FUNC(void,CANTP_MODLUE) StartNewTransmission (FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) txRuntimeParam)
+//static void StartNewTransmission(RunTimeInfo_s *txRuntimeParam)
 {
 	/*[SWS_CanTp_00030] The function CanTp_Init shall initialize all global variables of the module and sets
 	 * all transport protocol connections in a sub-state of CANTP_ON, in which neither segmented transmission
