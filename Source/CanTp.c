@@ -14,75 +14,61 @@
  *               source file Release 4.3.1                                                  *
  *                                                                                          *
  ********************************************************************************************/
-#include "Platform_Types.h"
-#include "Compiler.h"
-#include "Std_Types.h"
 #include "ComStack_Types.h"
 
+#include "ECUC.h"
+
+#include "CanIf.h"
+
+#include "CanTp_Macros.h"
 #include "CanTp_Types.h"
 #include "CanTp.h"
 #include "CanTp_Cfg.h"
 #include "CanTp_LCfg.h"
 #include "CanTp_Cbk.h"
 #include "CanTp_Det.h"
+
+#include "PduR_Cbk.h"
+
+#if DET_DETECT_ERROR
 #include "Det.h"
-#include "PduR.h"
-#include "CanIf.h"
-#include "CanTp_Macros.h"
-#include "CanTp_CanIf.h"
-#include "PduR_CanTp.h"
-
-#define LOCAL static
-/* Global Variable TODO #if test */
-uint8 g_DataCanIf[8] ;
-
-
-/* Array index is CanTp Npdu Id
- * Data is CanIF Pdu Id   */
-uint8 CanTpNPduID_ToCanIfPduId[NUMBER_OF_TXNPDU] = CANTPNPDUID_TOCANTFPDUID_MAPPING ;
-
-/* Array index is CanTp Npdu Id
- * Data is Pdur Ipdu Id   */
-uint8 CanTpNPduID_ToPdurIPduId[NUMBER_OF_RXNPDU] = CANTPNPDUID_TOPDURPDUID_MAPPING ;
-
-/* TODO Replace it */
-#if 1
-uint8 canif_ids[]={cantp_canif_tx};
-uint8 cantp_com_copy_tx[]={CanTp_copy_cantp};
-uint8 cantp_com_rx_or_copy[]= {cantp_com_rx};
-uint8 cantp_cainf_FC[] ={CanTpTxFcNPdu_canif};
 #endif
 
+/* TODO Compiler_Cfg.h */
+#define CANTP                         2
+#define CANTP_VAR_CLEARED             1
+#define CANTP_VAR_POWER_ON_CLEARED    2
+
 /* Static Function Prototypes */
-static void PadFrame(PduInfoType *PduInfoPtr);
-static void ComputeBlockSize(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntimeParam, uint8 *BS);
-static void StartNewTransmission(RunTimeInfo_s *txRuntimeParam);
-static void StartNewReception(RunTimeInfo_s *rxRuntimeParam);
-static void ReceiveSingleFrame(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntime, const PduInfoType *rxPduData);
-static void ReceiveFirstFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, const PduInfoType *CanTpPduData);
-static void SendFlowControlFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, BufReq_ReturnType flowControlStatus);
-static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntime, const PduInfoType *rxPduData);
-static void ReceiveFlowControlFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime, const PduInfoType *PduData);
-static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduData);
-static void HandleNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime);
-static void MainFunctionTransmitChannel(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime ,const CanTpRxNSdu_s *rxConfig);
-static void MainFunctionReceiveChannel(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntime);
-static Std_ReturnType TransmitFirstAndSingleFrame(PduIdType TxPduId, const PduInfoType* PduInfoPtr);
-static BufReq_ReturnType SendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime);
+LOCAL FUNC(void,CANTP) PadFrame(PduInfoType *PduInfoPtr);
+LOCAL FUNC(void,CANTP) ComputeBlockSize(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntimeParam, uint8 *BS);
+LOCAL FUNC(void,CANTP) StartNewTransmission(RunTimeInfo_s *txRuntimeParam);
+LOCAL FUNC(void,CANTP) StartNewReception(RunTimeInfo_s *rxRuntimeParam);
+LOCAL FUNC(void,CANTP) ReceiveSingleFrame(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntime, const PduInfoType *rxPduData);
+LOCAL FUNC(void,CANTP) ReceiveFirstFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, const PduInfoType *CanTpPduData);
+LOCAL FUNC(void,CANTP) SendFlowControlFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, BufReq_ReturnType flowControlStatus);
+LOCAL FUNC(void,CANTP) ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntime, const PduInfoType *rxPduData);
+LOCAL FUNC(void,CANTP) ReceiveFlowControlFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime, const PduInfoType *PduData);
+LOCAL FUNC(void,CANTP) HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduData);
+LOCAL FUNC(void,CANTP) HandleNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime);
+LOCAL FUNC(void,CANTP) MainFunctionTransmitChannel(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime ,const CanTpRxNSdu_s *rxConfig);
+LOCAL FUNC(void,CANTP) MainFunctionReceiveChannel(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntime);
+LOCAL FUNC(BufReq_ReturnType,CANTP) SendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime);
 
 /* Global Runtime Object */
-RunTimeInfo_s CanTpRunTimeTxData[CANTP_NSDU_CONFIG_LIST_SIZE_TX];
-RunTimeInfo_s CanTpRunTimeRxData[CANTP_NSDU_CONFIG_LIST_SIZE_RX];
+VAR(RunTimeInfo_s, CANTP_VAR_CLEARED) CanTpRunTimeTxData[NUMBER_OF_TXNPDU];
+VAR(RunTimeInfo_s, CANTP_VAR_CLEARED) CanTpRunTimeRxData[NUMBER_OF_RXNPDU];
 
 /* [SWS_CanTp_00027] The CanTp module shall have two internal states, CANTP_OFF and CANTP_ON. */
 /* [SWS_CanTp_00168] The CanTp module shall be in the CANTP_OFF state after power up. */
 
 /* Static Global Variable to hold CanTp Internal State {CANTP_OFF,CANTP_ON}*/
-CanTp_InternalStateType InternalState = (CanTp_InternalStateType)CANTP_OFF;
+VAR(CanTp_InternalStateType, CANTP_VAR_POWER_ON_CLEARED) InternalState = (CanTp_InternalStateType)CANTP_OFF;
 
-/* VAR(CanTp_InternalStateType, CANTP_VAR_CLEARED) InternalState = (CanTp_InternalStateType)CANTP_OFF;*/
 
-#define CANTP_MODLUE 0
+/* Global Variable TODO #if test */
+uint8 g_DataCanIf[8] ;
+
 /*******************************************************************************************
  * Service name      : CanTp_Init                                                          *
  * Service ID        : 0x01                                                                *
@@ -94,16 +80,15 @@ CanTp_InternalStateType InternalState = (CanTp_InternalStateType)CANTP_OFF;
  * Return value      : None                                                                *
  * Description       : This function initializes the CanTp module.                         *
  ********************************************************************************************/
-FUNC(void,CANTP_MODLUE) CanTp_Init(FUNC_P2CONST(CanTp_ConfigType, CANTP_MODLUE, AUTOMATIC) CfgPtr)
-//void CanTp_Init(const CanTp_ConfigType* CfgPtr)
-{
+FUNC(void,CANTP) CanTp_Init(FUNC_P2CONST(CanTp_ConfigType, CANTP, AUTOMATIC) CfgPtr)
+								{
 	VAR(PduIdType,AUTOMATIC) ChannelCounter = 0 ;
 
 	/* [SWS_CanTp_00030] The function CanTp_Init shall initialize all global variables of the module and sets
 	 * all transport protocol connections in a sub-state of CANTP_ON, in which neither segmented transmission
 	 * nor segmented reception are in progress (Rx thread in state CANTP_RX_WAIT and Tx thread in state CANTP_TX_WAIT). (SRS_Can_01075)*/
 
-	for( ChannelCounter=0; ChannelCounter < MAX_CHANNEL_COUNT; ChannelCounter++ ) //TODO: replace for loop if possible
+	for( ChannelCounter=0; ChannelCounter < MAX_CHANNEL_COUNT; ChannelCounter++ )
 	{
 		StartNewTransmission(&CanTpRunTimeTxData[ChannelInfo[ChannelCounter].StIdx]);
 		StartNewReception(&CanTpRunTimeRxData[ChannelInfo[ChannelCounter].StIdx]);
@@ -114,7 +99,7 @@ FUNC(void,CANTP_MODLUE) CanTp_Init(FUNC_P2CONST(CanTp_ConfigType, CANTP_MODLUE, 
 
 	/* Putting CanTp Module in the ON state to let other functions work */
 	InternalState = (CanTp_InternalStateType)CANTP_ON;
-}
+								}
 
 /*******************************************************************************************
  * Service name      : CanTp_Shutdown                                                      *
@@ -127,9 +112,8 @@ FUNC(void,CANTP_MODLUE) CanTp_Init(FUNC_P2CONST(CanTp_ConfigType, CANTP_MODLUE, 
  * Return value      : None                                                                *
  * Description       : This function is called to shutdown the CanTp module.               *
  *******************************************************************************************/
-FUNC(void,CANTP_MODLUE) CanTp_Shutdown(void)
-//void CanTp_Shutdown(void)
-{
+FUNC(void,CANTP) CanTp_Shutdown(void)
+                                								{
 	/* [SWS_CanTp_00202] The function CanTp_Shutdown shall close all pending transport protocol connections,
 	 * free all resources and set the CanTp module into the CANTP_OFF state. */
 
@@ -137,7 +121,7 @@ FUNC(void,CANTP_MODLUE) CanTp_Shutdown(void)
 
 	/* Putting CanTp Module in the OFF state to stop module safely */
 	InternalState = (CanTp_InternalStateType)CANTP_OFF;
-}
+                                								}
 
 
 /*************************************************************************************************
@@ -153,10 +137,12 @@ FUNC(void,CANTP_MODLUE) CanTp_Shutdown(void)
  *                                    E_NOT_OK: Transmit request has not been accepted.          *                                                   *
  * Description       : Requests transmission of a PDU.                                           *
  *************************************************************************************************/
-FUNC(Std_ReturnType,CANTP_MODLUE) CanTp_Transmit( VAR(PduIdType,AUTOMATIC) TxPduId, FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC) PduInfoPtr)
-//Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
-{
+FUNC(Std_ReturnType,CANTP) CanTp_Transmit( VAR(PduIdType,AUTOMATIC) TxPduId, FUNC_P2CONST(PduInfoType, CANTP, AUTOMATIC) PduInfoPtr)
+                                								{
 	VAR(Std_ReturnType,AUTOMATIC) TransmitRequest_Status = E_NOT_OK;
+	VAR(uint8,AUTOMATIC) MaxPayload ;
+	VAR(FrameType,AUTOMATIC)  Frame ;
+
 
 	/* [SWS_CanTp_00225] For specific connections that do not use MetaData, the
                          function CanTp_Transmit shall only use the full SduLength
@@ -189,17 +175,12 @@ FUNC(Std_ReturnType,CANTP_MODLUE) CanTp_Transmit( VAR(PduIdType,AUTOMATIC) TxPdu
 
 	/*CANTP_E_INVALID_TX_ID
       Invalid Transmit PDU identifier (e.g. a service is called withan inexistent Tx PDU identifier) */
-	else if(TxPduId >= CANTP_NSDU_CONFIG_LIST_SIZE_TX)
+	else if(TxPduId >= NUMBER_OF_TXNPDU)
 	{
 #if DET_DETECT_ERROR == STD_ON
 		Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_TRANSMIT_SERVICE_ID, CANTP_E_INVALID_TX_ID);
 #endif
 	}
-
-	/* TODO CANTP_E_PARAM_CONFIG & CANTP_E_PARAM_ID
-            API service called with wrong parameter(s): When CanTp_Transmit is called for a none
-            configured PDU identifier or with an identifier for a received PDU */
-
 
 	/* [SWS_CanTp_00123] If the configured transmit connection channel is in use (state CANTP_TX_PROCESSING),
                          the CanTp module shall reject new transmission requests linked to this channel.
@@ -209,7 +190,66 @@ FUNC(Std_ReturnType,CANTP_MODLUE) CanTp_Transmit( VAR(PduIdType,AUTOMATIC) TxPdu
 	{
 		if (CanTpRunTimeTxData[TxPduId].state == IDLE)
 		{
-			TransmitRequest_Status = TransmitFirstAndSingleFrame(TxPduId,PduInfoPtr);
+			CanTpRunTimeTxData[TxPduId].transferTotal          = PduInfoPtr->SduLength;
+
+			CanTpRunTimeTxData[TxPduId].mode                   = CANTP_TX_PROCESSING;
+
+			CanTpRunTimeTxData[TxPduId].IfBuffer.IFByteCount   = 0;
+
+			if ( CanTpTxNSdu[TxPduId].CanTpTxAddressingFormat == CANTP_STANDARD )
+			{
+				MaxPayload = MAX_PAYLOAD_STANDRAD_SF ;
+			}
+			else if ( CanTpTxNSdu[TxPduId].CanTpTxAddressingFormat == CANTP_EXTENDED )
+			{
+				MaxPayload = MAX_PAYLOAD_EXTENDED_SF ;
+			}
+			else
+			{
+				/* Do Nothing */
+			}
+
+			if( CanTpRunTimeTxData[TxPduId].transferTotal <= MaxPayload ) /* Single Frame */
+			{
+				Frame = SINGLE_FRAME ;
+			}
+			else /* First Frame */
+			{
+				Frame = FIRST_FRAME ;
+			}
+			switch(Frame)
+			{
+			case SINGLE_FRAME :
+				CanTpRunTimeTxData[TxPduId].IfBuffer.IFdataPtr[CanTpRunTimeTxData[TxPduId].IfBuffer.IFByteCount++] = ISO15765_TPCI_SF | (CanTpRunTimeTxData[TxPduId].transferTotal);
+				CanTpRunTimeTxData[TxPduId].pdurBuffer.SduLength             = CanTpRunTimeTxData[TxPduId].transferTotal ;
+				CanTpRunTimeTxData[TxPduId].state                            = TX_WAIT_TRANSMIT;
+				TransmitRequest_Status                      = E_OK ;
+				break;
+
+			case  FIRST_FRAME :
+				if ( CanTpTxNSdu[TxPduId].CanTpTxAddressingFormat == CANTP_STANDARD )
+				{
+					MaxPayload = MAX_PAYLOAD_STANDRAD_FF ;
+				}
+				else if ( CanTpTxNSdu[TxPduId].CanTpTxAddressingFormat == CANTP_EXTENDED )
+				{
+					MaxPayload = MAX_PAYLOAD_EXTENDED_FF ;
+				}
+				else
+				{
+					/* Nothing */
+				}
+				CanTpRunTimeTxData[TxPduId].IfBuffer.IFdataPtr[CanTpRunTimeTxData[TxPduId].IfBuffer.IFByteCount++] = ISO15765_TPCI_FF | (uint8)((CanTpRunTimeTxData[TxPduId].transferTotal & 0xf00) >> 8);
+				CanTpRunTimeTxData[TxPduId].IfBuffer.IFdataPtr[CanTpRunTimeTxData[TxPduId].IfBuffer.IFByteCount++] = (uint8)(CanTpRunTimeTxData[TxPduId].transferTotal & 0xff);
+				CanTpRunTimeTxData[TxPduId].pdurBuffer.SduLength  =  MaxPayload    ;
+				CanTpRunTimeTxData[TxPduId].state                 = TX_WAIT_TRANSMIT;
+				TransmitRequest_Status                            = E_OK ;
+				break;
+			default:
+				TransmitRequest_Status                            = E_NOT_OK ;
+				break;
+
+			}
 		}
 
 		else if(CanTpRunTimeTxData[TxPduId].state == CANTP_TX_PROCESSING)
@@ -234,8 +274,7 @@ FUNC(Std_ReturnType,CANTP_MODLUE) CanTp_Transmit( VAR(PduIdType,AUTOMATIC) TxPdu
  * Return value      : None                                           *
  * Description       : The main function for scheduling the CAN TP.   *
  **********************************************************************/
-FUNC(void,CANTP_MODLUE) CanTp_MainFunction(void)
-//void CanTp_MainFunction(void)
+FUNC(void,CANTP) CanTp_MainFunction(void)
 {
 	VAR(PduIdType, AUTOMATIC) ChannelCounter;
 
@@ -289,10 +328,11 @@ FUNC(void,CANTP_MODLUE) CanTp_MainFunction(void)
  * Description       : The lower layer communication interface module confirms the transmission *
  *                     of a PDU, or the failure to transmit a PDU.                              *
  ************************************************************************************************/
-FUNC(void,CANTP_MODLUE) CanTp_TxConfirmation( VAR(PduIdType,AUTOMATIC) TxPduId, VAR(Std_ReturnType,AUTOMATIC) result )
-//void CanTp_TxConfirmation(PduIdType TxPduId, Std_ReturnType result)
+FUNC(void,CANTP) CanTp_TxConfirmation( VAR(PduIdType,AUTOMATIC) TxPduId, VAR(Std_ReturnType,AUTOMATIC) result )
 {
 	VAR(FrameType,AUTOMATIC) IDtype;
+	VAR(uint8,AUTOMATIC) ConfirmFlag = 1;
+
 
 	/* [SWS_CanTp_00111] If called when the CanTp module is in the global state CANTP_ON,
                              the function CanTp_Init shall return the module to state Idle
@@ -312,15 +352,30 @@ FUNC(void,CANTP_MODLUE) CanTp_TxConfirmation( VAR(PduIdType,AUTOMATIC) TxPduId, 
 
 	/* CANTP_E_INVALID_RX_ID Invalid Receive PDU identifier (e.g. a service is called with
                               an inexistent Rx PDU identifier) */
-	else if (TxPduId >= CANTP_NSDU_CONFIG_LIST_SIZE_TX)
+	else if(CanTpRunTimeTxData[TxPduId].state == TX_WAIT_TX_CONFIRMATION)
 	{
-		/* TODO Handle It For Rx too ????????*/
+		if (TxPduId >= NUMBER_OF_TXNPDU)
+		{
 #if DET_DETECT_ERROR == STD_ON
-		CanTpRunTimeTxData[TxPduId].state = IDLE;
-		CanTpRunTimeTxData[TxPduId].mode  = CANTP_TX_WAIT;
-		Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_TXCONFIRMATION_SERVICE_ID, CANTP_E_INVALID_TX_ID);
+			CanTpRunTimeTxData[TxPduId].state = IDLE;
+			CanTpRunTimeTxData[TxPduId].mode  = CANTP_TX_WAIT;
+			Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_TXCONFIRMATION_SERVICE_ID, CANTP_E_INVALID_TX_ID);
+#endif
+
+		}
+	}/* In case of Flow Control Transmission Confirmation */
+	else if (CanTpRunTimeRxData[TxPduId].state == RX_WAIT_TX_CONFIRMATION)
+	{
+		if( (TxPduId < CanTp_LowerLayerUser_LookUpTable_FC[0]) || (TxPduId > CanTp_LowerLayerUser_LookUpTable_FC[NUMBER_OF_RXNPDU]) )
+		{
+#if DET_DETECT_ERROR == STD_ON
+			CanTpRunTimeRxData[TxPduId].state = IDLE;
+			CanTpRunTimeRxData[TxPduId].mode  = CANTP_RX_WAIT;
+			/* In case of invalid FC confirmation ID, Report Invalid Id as TX here  */
+			Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_TXCONFIRMATION_SERVICE_ID, CANTP_E_INVALID_TX_ID);
 
 #endif
+		}
 	}
 	else
 	{
@@ -331,6 +386,7 @@ FUNC(void,CANTP_MODLUE) CanTp_TxConfirmation( VAR(PduIdType,AUTOMATIC) TxPduId, 
 		case E_NOT_OK:
 			CanTpRunTimeTxData[TxPduId].state = IDLE;
 			CanTpRunTimeTxData[TxPduId].mode  = CANTP_TX_WAIT;
+
 			break;
 		case E_OK:
 			if(CanTpRunTimeTxData[TxPduId].state == TX_WAIT_TX_CONFIRMATION)
@@ -348,6 +404,7 @@ FUNC(void,CANTP_MODLUE) CanTp_TxConfirmation( VAR(PduIdType,AUTOMATIC) TxPduId, 
 					CanTpRunTimeTxData[TxPduId].state             = TX_WAIT_FLOW_CONTROL;
 					break;
 				case ISO15765_TPCI_CF:
+					ConfirmFlag = 0;
 					HandleNextTxFrame(&CanTpTxNSdu[TxPduId], &CanTpRunTimeTxData[TxPduId]);
 					break;
 				default:
@@ -367,6 +424,13 @@ FUNC(void,CANTP_MODLUE) CanTp_TxConfirmation( VAR(PduIdType,AUTOMATIC) TxPduId, 
 		default:
 			break;
 		}/* End of Switch case */
+
+		if (ConfirmFlag)
+		{
+			/*[SWS_CanTp_00204] The CanTp module shall notify the upper layer by calling the
+		                        PduR_CanTpTxConfirmation callback when the transmit request has been completed */
+			PduR_CanTpTxConfirmation(TxPduId, result) ;
+		}
 	} /* End of else */
 }
 
@@ -385,8 +449,7 @@ FUNC(void,CANTP_MODLUE) CanTp_TxConfirmation( VAR(PduIdType,AUTOMATIC) TxPduId, 
  *                                    E_NOT_OK: Transmit request has not been accepted.              *
  * Description       :Indication of a received PDU from a lower layer communication interface module *
  *****************************************************************************************************/
-FUNC(void,CANTP_MODLUE) CanTp_RxIndication( VAR(PduIdType,AUTOMATIC) RxPduId, FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC) PduInfoPtr)
-///void CanTp_RxIndication(PduIdType RxPduId, const PduInfoType* PduInfoPtr)
+FUNC(void,CANTP) CanTp_RxIndication( VAR(PduIdType,AUTOMATIC) RxPduId, FUNC_P2CONST(PduInfoType, CANTP, AUTOMATIC) PduInfoPtr)
 {
 	/* API service called with a NULL pointer. In case of this error, the API service
       shall return immediately without any further action, besides reporting this
@@ -397,7 +460,6 @@ FUNC(void,CANTP_MODLUE) CanTp_RxIndication( VAR(PduIdType,AUTOMATIC) RxPduId, FU
 		Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_PARAM_POINTER);
 #endif
 	}
-
 
 	/* [SWS_CanTp_00111] If called when the CanTp module is in the global state CANTP_ON,
                          the function CanTp_Init shall return the module to state Idle
@@ -418,7 +480,7 @@ FUNC(void,CANTP_MODLUE) CanTp_RxIndication( VAR(PduIdType,AUTOMATIC) RxPduId, FU
 	/* CANTP_E_INVALID_RX_ID
            Invalid Receive PDU identifier (e.g. a service is called with
            an inexistent Rx PDU identifier)*/
-	else if (RxPduId >= CANTP_NSDU_CONFIG_LIST_SIZE_RX )
+	else if (RxPduId >= NUMBER_OF_RXNPDU )
 	{
 #if DET_DETECT_ERROR == STD_ON
 
@@ -443,10 +505,8 @@ FUNC(void,CANTP_MODLUE) CanTp_RxIndication( VAR(PduIdType,AUTOMATIC) RxPduId, FU
  * Return value      : None                                                                          *
  * Description       : Function Used By CanTp_RxIndication To Get the FrameType and Receive Data     *
  *****************************************************************************************************/
-LOCAL FUNC(void,CANTP_MODLUE) HandleReceivedFrame( VAR(PduIdType,AUTOMATIC) RxPduId, FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC) CanTpPduData)
-//static void HandleReceivedFrame(PduIdType RxPduId, const PduInfoType *CanTpPduData)
+LOCAL FUNC(void,CANTP) HandleReceivedFrame( VAR(PduIdType,AUTOMATIC) RxPduId, FUNC_P2CONST(PduInfoType, CANTP, AUTOMATIC) CanTpPduData)
 {
-	/* TODO Want it as macro ??? */
 	VAR(uint8,AUTOMATIC) CanTpPduDataPCI_Offset;
 	VAR(uint8,AUTOMATIC) CanTp_FrameID;
 
@@ -485,7 +545,7 @@ LOCAL FUNC(void,CANTP_MODLUE) HandleReceivedFrame( VAR(PduIdType,AUTOMATIC) RxPd
 #if DET_DETECT_ERROR == STD_ON
 			Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_PADDING);
 #endif
-			PduR_CanTpRxIndication(cantp_com_rx_or_copy[RxPduId], E_NOT_OK);
+			PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[RxPduId], E_NOT_OK);
 		}
 		else
 		{
@@ -516,7 +576,7 @@ LOCAL FUNC(void,CANTP_MODLUE) HandleReceivedFrame( VAR(PduIdType,AUTOMATIC) RxPd
 #if DET_DETECT_ERROR == STD_ON
 				Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_PADDING);
 #endif
-				PduR_CanTpRxIndication(cantp_com_rx_or_copy[RxPduId], E_NOT_OK);
+				PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[RxPduId], E_NOT_OK);
 			}
 			else /* At Last CF   */
 			{
@@ -543,7 +603,7 @@ LOCAL FUNC(void,CANTP_MODLUE) HandleReceivedFrame( VAR(PduIdType,AUTOMATIC) RxPd
 #if DET_ERROR_STATUS == STD_ON
 			Det_ReportError(CANTP_MODULE_ID, CANTP_INSTANCE_ID, CANTP_RXINDICATION_SERVICE_ID, CANTP_E_PADDING);
 #endif
-			PduR_CanTpTxConfirmation(cantp_com_rx_or_copy[RxPduId], E_NOT_OK);
+			PduR_CanTpTxConfirmation(CanTp_UpperLayerUser_LookUpTable_Tx[RxPduId], E_NOT_OK);
 		}
 		else
 		{
@@ -553,9 +613,8 @@ LOCAL FUNC(void,CANTP_MODLUE) HandleReceivedFrame( VAR(PduIdType,AUTOMATIC) RxPd
 		break;
 	default:
 		break;
-	}
 }
-
+}
 
 /*****************************************************************************************************
  * Service name      : SendNextTxFrame                                                               *
@@ -566,33 +625,32 @@ LOCAL FUNC(void,CANTP_MODLUE) HandleReceivedFrame( VAR(PduIdType,AUTOMATIC) RxPd
  * Return value      : None                                                                          *
  * Description       : Get Data From Pdur to Cantp                                                   *
  *****************************************************************************************************/
-LOCAL FUNC(BufReq_ReturnType,CANTP_MODLUE) SendNextTxFrame( FUNC_P2CONST(CanTpTxNSdu_s, CANTP_MODLUE, AUTOMATIC) txConfig, FUNC_P2VAR(RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) txRuntime )
-//static BufReq_ReturnType SendNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime)
+LOCAL FUNC(BufReq_ReturnType,CANTP) SendNextTxFrame( FUNC_P2CONST(CanTpTxNSdu_s, CANTP, AUTOMATIC) txConfig, FUNC_P2VAR(RunTimeInfo_s, CANTP, AUTOMATIC) txRuntime )
 {
 	VAR(BufReq_ReturnType,AUTOMATIC) ret = BUFREQ_E_NOT_OK;
 	VAR(Std_ReturnType,AUTOMATIC) resp;
-	VAR(uint8,AUTOMATIC) canif_id = canif_ids[txConfig->CanTpTxNSduId];
-	VAR(uint8,AUTOMATIC) CanTp_FrameID;
+	VAR(uint8,AUTOMATIC) canif_id ;
+	VAR(uint8,AUTOMATIC) Pdur_id ;
 	VAR(PduInfoType,AUTOMATIC) pduInfo;
 
-	FUNC_P2VAR(RetryInfoType, CANTP_MODLUE, AUTOMATIC) retry;
-	/* [SWS_CanTp_00272] The API PduR_CanTpCopyTxData() contains a parameter used for the recovery mechanism – ‘retry’.
+	FUNC_P2VAR(RetryInfoType, CANTP, AUTOMATIC) retry;
+	/* [SWS_CanTp_00272] The API PduR_CanTpCopyTxData() contains a parameter used for the recovery mechanism retry
 	 * Because ISO 15765-2 does not support such a mechanism, the CAN Transport Layer does not implement
 	 * any kind of recovery. Thus, the parameter is always set to NULL pointer. */
-	 retry = NULL_PTR;
+	retry = NULL_PTR;
+
+	canif_id = CanTp_LowerLayerUser_LookUpTable_Tx[txConfig->CanTpTxNPduConfirmationPduId];
+	Pdur_id  = CanTp_UpperLayerUser_LookUpTable_Tx[txConfig->CanTpTxNSduId];
 
 	/* make SduDataPtr point to first byte of Payload data */
-	//txRuntime->pdurBuffer.SduDataPtr = &CanTpRunTimeTxData[txConfig->CanTpTxNSduId].IfBuffer.IFdataPtr[CanTpRunTimeTxData[txConfig->CanTpTxNSduId].IfBuffer.IFByteCount++];
 
 	if (txRuntime->availableDataSize == 0)           /* in case of SF or FF, no data left unsent */
 	{
-		ret                       = PduR_CanTpCopyTxData(cantp_com_copy_tx[txConfig->CanTpTxNSduId],&txRuntime->pdurBuffer,retry,&txRuntime->availableDataSize);
+		ret = PduR_CanTpCopyTxData(Pdur_id, &txRuntime->pdurBuffer, retry, &txRuntime->availableDataSize);
 		txRuntime->transferCount += txRuntime->pdurBuffer.SduLength;
 	}
-
 	else /* In case of any CF */
 	{
-
 		/* Prepare TX buffer for next frame to be sent */
 		txRuntime->IfBuffer.IFByteCount = 0;
 
@@ -622,16 +680,14 @@ LOCAL FUNC(BufReq_ReturnType,CANTP_MODLUE) SendNextTxFrame( FUNC_P2CONST(CanTpTx
 			(txRuntime->pdurBuffer.SduLength) = (txRuntime->availableDataSize);
 		}
 
-		ret                               = PduR_CanTpCopyTxData(cantp_com_copy_tx[txConfig->CanTpTxNSduId],&txRuntime->pdurBuffer,retry,&txRuntime->availableDataSize);
+		ret    = PduR_CanTpCopyTxData(Pdur_id, &txRuntime->pdurBuffer, retry, &txRuntime->availableDataSize);
 
 		/* Updating total transfered amount of bytes */
 		txRuntime->transferCount         += txRuntime->pdurBuffer.SduLength;
 	}
 
-	/* make SduDataPtr point to first byte of Payload data */
-	//txRuntime->pdurBuffer.SduDataPtr = txRuntime->IfBuffer.IFdataPtr[txRuntime->IfBuffer.IFByteCount];
 	uint8 ByteCounter;
-	for(ByteCounter=0;ByteCounter<txRuntime->pdurBuffer.SduLength;ByteCounter++)
+	for(ByteCounter=0; ByteCounter<txRuntime->pdurBuffer.SduLength; ByteCounter++)
 	{
 		txRuntime->IfBuffer.IFdataPtr[ByteCounter+txRuntime->IfBuffer.IFByteCount] = txRuntime->pdurBuffer.SduDataPtr[ByteCounter];
 	}
@@ -696,7 +752,7 @@ LOCAL FUNC(BufReq_ReturnType,CANTP_MODLUE) SendNextTxFrame( FUNC_P2CONST(CanTpTx
 	}
 
 	return ret;
-}
+                                								}
 
 /*****************************************************************************************************
  * Service name      : HandleNextTxFrame                                                             *
@@ -707,15 +763,15 @@ LOCAL FUNC(BufReq_ReturnType,CANTP_MODLUE) SendNextTxFrame( FUNC_P2CONST(CanTpTx
  * Return value      : None                                                                          *
  * Description       : Handle next Consective Frame To Transmit                                      *
  *****************************************************************************************************/
-LOCAL FUNC(void,CANTP_MODLUE) HandleNextTxFrame( FUNC_P2CONST(CanTpTxNSdu_s, CANTP_MODLUE, AUTOMATIC) txConfig, FUNC_P2VAR(RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) txRuntime )
-//static void HandleNextTxFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime)
+LOCAL FUNC(void,CANTP) HandleNextTxFrame( FUNC_P2CONST(CanTpTxNSdu_s, CANTP, AUTOMATIC) txConfig,
+		                                  FUNC_P2VAR(RunTimeInfo_s, CANTP, AUTOMATIC) txRuntime )
 {
 
 	/* In Case of Last Block of Consecutive Frames is Received (End of Transmission) or Block size = 0 meaning send all frames */
 	if ( (txRuntime->transferTotal) <= (txRuntime->transferCount) )
 	{
 		/* Transfer finished! */
-		PduR_CanTpTxConfirmation(txConfig->CanTpTxNPduConfirmationPduId, E_OK);
+		PduR_CanTpTxConfirmation(CanTp_UpperLayerUser_LookUpTable_Tx[txConfig->CanTpTxNPduConfirmationPduId], E_OK);
 		txRuntime->state = IDLE;
 		txRuntime->mode  = CANTP_TX_WAIT;
 	}
@@ -752,10 +808,10 @@ LOCAL FUNC(void,CANTP_MODLUE) HandleNextTxFrame( FUNC_P2CONST(CanTpTxNSdu_s, CAN
 		{
 			/* successfully sent frame, wait for TX confirm */
 
-			/* [SWS_CanTp_00090] ⌈When the transport transmission session is successfully completed,
+			/* [SWS_CanTp_00090] When the transport transmission session is successfully completed,
 			 * the CanTp module shall call a notification service of the upper layer,
 			 * PduR_CanTpTxConfirmation(), with the result E_OK. */
-			PduR_CanTpTxConfirmation(txConfig->CanTpTxNPduConfirmationPduId, E_OK);
+			PduR_CanTpTxConfirmation(CanTp_UpperLayerUser_LookUpTable_Tx[txConfig->CanTpTxNPduConfirmationPduId], E_OK);
 
 			break;
 		}
@@ -780,7 +836,7 @@ LOCAL FUNC(void,CANTP_MODLUE) HandleNextTxFrame( FUNC_P2CONST(CanTpTxNSdu_s, CAN
 			/* [SWS_CanTp_00343]⌈CanTp shall terminate the current transmission connection when CanIf_Transmit()
 			 * returns E_NOT_OK when transmitting an SF, FF, of CF */
 
-			PduR_CanTpTxConfirmation(txConfig->CanTpTxNPduConfirmationPduId, E_NOT_OK);
+			PduR_CanTpTxConfirmation(CanTp_UpperLayerUser_LookUpTable_Tx[txConfig->CanTpTxNPduConfirmationPduId], E_NOT_OK);
 			txRuntime->state = IDLE;
 			txRuntime->mode  = CANTP_TX_WAIT;
 
@@ -819,7 +875,7 @@ LOCAL FUNC(void,CANTP_MODLUE) HandleNextTxFrame( FUNC_P2CONST(CanTpTxNSdu_s, CAN
 		/* Changing state of TX to be waiting for STmin Time stored in stateTimeoutCount */
 		txRuntime->state = TX_WAIT_STMIN;
 	}
-}
+                                								}
 
 /*****************************************************************************************************
  * Service name      : ReceiveFlowControlFrame                                                       *
@@ -831,11 +887,11 @@ LOCAL FUNC(void,CANTP_MODLUE) HandleNextTxFrame( FUNC_P2CONST(CanTpTxNSdu_s, CAN
  * Return value      : None                                                                          *
  * Description       : Receive Flow Control Frame                                                    *
  *****************************************************************************************************/
-LOCAL FUNC(void,CANTP_MODLUE) ReceiveFlowControlFrame( FUNC_P2CONST(CanTpTxNSdu_s, CANTP_MODLUE, AUTOMATIC) txConfig,
-		                                               FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) txRuntime,
-		                                               FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC) PduData )
-//static void ReceiveFlowControlFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime, const PduInfoType *PduData)
-{
+LOCAL FUNC(void,CANTP) ReceiveFlowControlFrame( FUNC_P2CONST(CanTpTxNSdu_s, CANTP, AUTOMATIC) txConfig,
+		FUNC_P2VAR( RunTimeInfo_s, CANTP, AUTOMATIC) txRuntime,
+		FUNC_P2CONST(PduInfoType, CANTP, AUTOMATIC) PduData )
+		//static void ReceiveFlowControlFrame(const CanTpTxNSdu_s *txConfig, RunTimeInfo_s *txRuntime, const PduInfoType *PduData)
+		{
 	VAR(uint8, AUTOMATIC) indexCount = 0;
 
 	/* Make sure that the frame is in 'TX_WAIT_FLOW_CONTROL' state */
@@ -890,7 +946,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveFlowControlFrame( FUNC_P2CONST(CanTpTxNSdu_
 			txRuntime->mode                 = CANTP_TX_WAIT;
 
 			/* PduR Notification of Transmission failure by the value 'E_NOT_OK' */
-			PduR_CanTpTxConfirmation(txConfig->CanTpRxFcNPduId, E_NOT_OK);
+			PduR_CanTpTxConfirmation(CanTp_UpperLayerUser_LookUpTable_Tx[txConfig->CanTpRxFcNPduId], E_NOT_OK);
 
 			break;
 
@@ -909,7 +965,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveFlowControlFrame( FUNC_P2CONST(CanTpTxNSdu_
 		/* Do nothing if the frame isn't in 'TX_WAIT_FLOW_CONTROL' state keeping state and mode unchanged */
 	}
 
-}
+		}
 
 
 /*****************************************************************************************************
@@ -922,12 +978,12 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveFlowControlFrame( FUNC_P2CONST(CanTpTxNSdu_
  * Return value      : None                                                                          *
  * Description       : Copy Cantp Received Data to Pdur  for Consective Frame                        *
  *****************************************************************************************************/
-LOCAL FUNC(void,CANTP_MODLUE) ReceiveConsecutiveFrame( FUNC_P2CONST(CanTpRxNSdu_s, CANTP_MODLUE, AUTOMATIC) rxConfig,
-		                                               FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) rxRuntime,
-		                                               FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC) rxPduData)
+LOCAL FUNC(void,CANTP) ReceiveConsecutiveFrame( FUNC_P2CONST(CanTpRxNSdu_s, CANTP, AUTOMATIC) rxConfig,
+		FUNC_P2VAR( RunTimeInfo_s, CANTP, AUTOMATIC) rxRuntime,
+		FUNC_P2CONST(PduInfoType, CANTP, AUTOMATIC) rxPduData)
 
-//static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntime, const PduInfoType *rxPduData)
-{
+		//static void ReceiveConsecutiveFrame(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntime, const PduInfoType *rxPduData)
+		{
 
 	VAR(uint8, AUTOMATIC) indexCount      = 0;
 	VAR(uint8, AUTOMATIC) segmentNumber   = 0;
@@ -937,7 +993,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveConsecutiveFrame( FUNC_P2CONST(CanTpRxNSdu_
 	PduInfoType info; /* TODO Replace it */
 
 
-	id          = cantp_com_rx_or_copy[rxConfig->CanTpRxNSduId] ;
+	id          = CanTp_UpperLayerUser_LookUpTable_Rx[rxConfig->CanTpRxNSduId] ;
 
 	//TODO: if(mode == CanTp_Rx_PROCESSING) ---> FF sets the mode to be processing,
 	//so we have to ensure we are entering in the right mode...
@@ -970,7 +1026,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveConsecutiveFrame( FUNC_P2CONST(CanTpRxNSdu_
 			rxRuntime->mode  = CANTP_RX_WAIT;
 
 			/* notify PduR of this failure by calling the indication function with the result E_NOT_OK */
-			PduR_CanTpRxIndication(rxConfig->CanTpRxNPduId, E_NOT_OK);//TODO: Id modification
+			PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxConfig->CanTpRxNPduId], E_NOT_OK);//TODO: Id modification
 
 		}
 
@@ -1007,7 +1063,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveConsecutiveFrame( FUNC_P2CONST(CanTpRxNSdu_
 				rxRuntime->framesHandledCount++;
 
 				/* Increase total count of received bytes */
-				rxRuntime->transferCount += info->SduLength;
+				rxRuntime->transferCount += info.SduLength;
 
 				/* Checking that we are handling the last CF of the last Block "ending frame" or just in-between block */
 				if(rxRuntime->transferCount >= rxRuntime->transferTotal)
@@ -1046,7 +1102,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveConsecutiveFrame( FUNC_P2CONST(CanTpRxNSdu_
 					}
 					else /* size of available buffer is sufficient for next block */
 					{
-						PduR_CanTpRxIndication(rxConfig->CanTpRxNPduId, E_OK);//TODO: ID Modification
+						PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxConfig->CanTpRxNPduId], E_OK);//TODO: ID Modification
 
 						/* Change State To wait Consecutive Frame */
 						rxRuntime->state = RX_WAIT_CONSECUTIVE_FRAME;
@@ -1100,7 +1156,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveConsecutiveFrame( FUNC_P2CONST(CanTpRxNSdu_
 					rxRuntime->framesHandledCount++;
 
 					/* Increase total count of received bytes */
-					rxRuntime->transferCount += info->SduLength;
+					rxRuntime->transferCount += info.SduLength;
 
 					/* [SWS_CanTp_00312] The CanTp module shall start a time-out N_Cr at each indication of CF reception
 					 * (except the last one in a block) and at each confirmation of a FC transmission that initiate
@@ -1119,7 +1175,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveConsecutiveFrame( FUNC_P2CONST(CanTpRxNSdu_
 	{
 		/* Do Nothing if the frame is not in 'TX_WAIT_FLOW_CONTROL' state and nothing should be changed */
 	}
-}
+		}
 
 
 /*****************************************************************************************************
@@ -1132,11 +1188,11 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveConsecutiveFrame( FUNC_P2CONST(CanTpRxNSdu_
  * Return value      : None                                                                          *
  * Description       : Copy Cantp Received Data to Pdur for Single Frame                             *
  *****************************************************************************************************/
-LOCAL FUNC(void,CANTP_MODLUE) ReceiveSingleFrame( FUNC_P2CONST(CanTpRxNSdu_s, CANTP_MODLUE, AUTOMATIC) rxNSduConfig,
-		                                          FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) rxRuntimeParam,
-		                                          FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC)  CanTpPduData)
-//static void ReceiveSingleFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, const PduInfoType *CanTpPduData)
-{
+LOCAL FUNC(void,CANTP) ReceiveSingleFrame( FUNC_P2CONST(CanTpRxNSdu_s, CANTP, AUTOMATIC) rxNSduConfig,
+		FUNC_P2VAR( RunTimeInfo_s, CANTP, AUTOMATIC) rxRuntimeParam,
+		FUNC_P2CONST(PduInfoType, CANTP, AUTOMATIC)  CanTpPduData)
+		//static void ReceiveSingleFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, const PduInfoType *CanTpPduData)
+		{
 	/* TODO Replace it */
 	PduInfoType rxPduData;  /* Pdur Receive Data */
 
@@ -1157,7 +1213,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveSingleFrame( FUNC_P2CONST(CanTpRxNSdu_s, CA
 	if(rxRuntimeParam->mode == CANTP_RX_PROCESSING)
 	{
 		/* Report an PDUR with E_NOT_OK to Abort*/
-		PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_NOT_OK);
+		PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxNSduConfig->CanTpRxNPduId], E_NOT_OK);
 
 		/* Start new Reception */
 		StartNewReception(rxRuntimeParam);
@@ -1198,7 +1254,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveSingleFrame( FUNC_P2CONST(CanTpRxNSdu_s, CA
 	/* [SWS_CanTp_00079] When receiving an SF or an FF N-PDU, the CanTp module
              shall notify the upper layer (PDU Router) about this reception using the
              PduR_CanTpStartOfReception function */
-	BufferRequest_Status = PduR_CanTpStartOfReception( cantp_com_rx_or_copy[rxNSduConfig->CanTpRxNSduId], \
+	BufferRequest_Status = PduR_CanTpStartOfReception( CanTp_UpperLayerUser_LookUpTable_Rx[rxNSduConfig->CanTpRxNSduId], \
 			&rxPduData,  \
 			rxRuntimeParam->transferTotal,  \
 			&rxRuntimeParam->Buffersize );
@@ -1214,7 +1270,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveSingleFrame( FUNC_P2CONST(CanTpRxNSdu_s, CA
 	case BUFREQ_OK:
 		if( rxRuntimeParam->Buffersize < rxRuntimeParam->transferTotal )
 		{
-			PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_NOT_OK);
+			PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxNSduConfig->CanTpRxNPduId], E_NOT_OK);
 		}
 		else
 		{
@@ -1223,16 +1279,16 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveSingleFrame( FUNC_P2CONST(CanTpRxNSdu_s, CA
                                bytes to be copied
 			 *bufferSizePtr -> Available receive buffer after data has been copied.
 			 */
-			CopyData_Status = PduR_CanTpCopyRxData( cantp_com_rx_or_copy[rxNSduConfig->CanTpRxNSduId],\
+			CopyData_Status = PduR_CanTpCopyRxData( CanTp_UpperLayerUser_LookUpTable_Rx[rxNSduConfig->CanTpRxNSduId],\
 					&rxPduData,  \
 					&rxRuntimeParam->Buffersize );
 			switch(CopyData_Status)
 			{
 			case BUFREQ_OK :
-				PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_OK);
+				PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxNSduConfig->CanTpRxNPduId], E_OK);
 				break;
 			case BUFREQ_E_NOT_OK :
-				PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_NOT_OK);
+				PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxNSduConfig->CanTpRxNPduId], E_NOT_OK);
 				break;
 			default :
 				/* Do Nothing*/
@@ -1265,7 +1321,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveSingleFrame( FUNC_P2CONST(CanTpRxNSdu_s, CA
 		break;
 	}
 
-}
+		}
 
 /*****************************************************************************************************
  * Service name      : ReceiveFirstFrame                                                             *
@@ -1277,11 +1333,11 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveSingleFrame( FUNC_P2CONST(CanTpRxNSdu_s, CA
  * Return value      : None                                                                          *
  * Description       : Copy Cantp Received Data to Pdur  for First Frame                             *
  *****************************************************************************************************/
-LOCAL FUNC(void,CANTP_MODLUE) ReceiveFirstFrame( FUNC_P2CONST(CanTpRxNSdu_s, CANTP_MODLUE, AUTOMATIC) rxNSduConfig,
-		                                          FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) rxRuntimeParam,
-		                                          FUNC_P2CONST(PduInfoType, CANTP_MODLUE, AUTOMATIC)  CanTpPduData)
-//static void ReceiveFirstFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, const PduInfoType *CanTpPduData)
-{
+LOCAL FUNC(void,CANTP) ReceiveFirstFrame( FUNC_P2CONST(CanTpRxNSdu_s, CANTP, AUTOMATIC) rxNSduConfig,
+		FUNC_P2VAR( RunTimeInfo_s, CANTP, AUTOMATIC) rxRuntimeParam,
+		FUNC_P2CONST(PduInfoType, CANTP, AUTOMATIC)  CanTpPduData)
+		//static void ReceiveFirstFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, const PduInfoType *CanTpPduData)
+		{
 
 	VAR(uint8, AUTOMATIC) CanTpPduData_Offset ;
 	VAR(uint8, AUTOMATIC) CanTpPduDataLength_Offset;
@@ -1298,7 +1354,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveFirstFrame( FUNC_P2CONST(CanTpRxNSdu_s, CAN
 	if(rxRuntimeParam->mode == CANTP_RX_PROCESSING)
 	{
 		/* Report an PDUR with E_NOT_OK to Abort*/
-		PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_NOT_OK);
+		PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxNSduConfig->CanTpRxNPduId], E_NOT_OK);
 
 		/* Start new Reception */
 		StartNewReception(rxRuntimeParam);
@@ -1357,7 +1413,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveFirstFrame( FUNC_P2CONST(CanTpRxNSdu_s, CAN
 
 	rxRuntimeParam->stateTimeoutCount = (rxNSduConfig->CanTpNbr);
 
-	BufferRequest_Status = PduR_CanTpStartOfReception( cantp_com_rx_or_copy[rxNSduConfig->CanTpRxNSduId], \
+	BufferRequest_Status = PduR_CanTpStartOfReception( CanTp_UpperLayerUser_LookUpTable_Rx[rxNSduConfig->CanTpRxNSduId], \
 			&rxPduData,  \
 			rxRuntimeParam->transferTotal,  \
 			&rxRuntimeParam->Buffersize );
@@ -1374,7 +1430,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveFirstFrame( FUNC_P2CONST(CanTpRxNSdu_s, CAN
 		if( rxRuntimeParam->Buffersize < rxPduData.SduLength ) //sdulength
 		{
 			/* call PduR_CanTpRxIndication() with the result E_NOT_OK */
-			PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_NOT_OK);
+			PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxNSduConfig->CanTpRxNPduId], E_NOT_OK);
 			/* abort the reception*/
 			rxRuntimeParam->state = IDLE;
 			rxRuntimeParam->mode = CANTP_RX_WAIT;
@@ -1394,7 +1450,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveFirstFrame( FUNC_P2CONST(CanTpRxNSdu_s, CAN
                                bytes to be copied
 			 *bufferSizePtr -> Available receive buffer after data has been copied.
 			 */
-			CopyData_Status = PduR_CanTpCopyRxData( cantp_com_rx_or_copy[rxNSduConfig->CanTpRxNSduId],\
+			CopyData_Status = PduR_CanTpCopyRxData( CanTp_UpperLayerUser_LookUpTable_Rx[rxNSduConfig->CanTpRxNSduId],\
 					&rxPduData,  \
 					&rxRuntimeParam->Buffersize );
 
@@ -1426,7 +1482,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveFirstFrame( FUNC_P2CONST(CanTpRxNSdu_s, CAN
 				}
 				else /* size of available buffer is sufficient for next block */
 				{
-					PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_OK);
+					PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxNSduConfig->CanTpRxNPduId], E_OK);
 
 					/* Change State To wait Consecutive Frame */
 					rxRuntimeParam->state = RX_WAIT_CONSECUTIVE_FRAME;
@@ -1443,7 +1499,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveFirstFrame( FUNC_P2CONST(CanTpRxNSdu_s, CAN
 				}
 				break;
 			case BUFREQ_E_NOT_OK:
-				PduR_CanTpRxIndication(rxNSduConfig->CanTpRxNPduId, E_NOT_OK);
+				PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxNSduConfig->CanTpRxNPduId], E_NOT_OK);
 				break;
 			default:
 				/* Nothing */
@@ -1483,7 +1539,7 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveFirstFrame( FUNC_P2CONST(CanTpRxNSdu_s, CAN
 
 	}
 
-}
+		}
 
 
 /*****************************************************************************************************
@@ -1496,12 +1552,12 @@ LOCAL FUNC(void,CANTP_MODLUE) ReceiveFirstFrame( FUNC_P2CONST(CanTpRxNSdu_s, CAN
  * Return value      : None                                                                          *
  * Description       : Receiver Send Flow Control                                                    *
  *****************************************************************************************************/
-LOCAL FUNC(void,CANTP_MODLUE) SendFlowControlFrame( FUNC_P2CONST(CanTpRxNSdu_s, CANTP_MODLUE, AUTOMATIC) rxNSduConfig,
-		                                            FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) rxRuntimeParam,
-												    VAR(FrameType, AUTOMATIC) FlowControlStatus)
+LOCAL FUNC(void,CANTP) SendFlowControlFrame( FUNC_P2CONST(CanTpRxNSdu_s, CANTP, AUTOMATIC) rxNSduConfig,
+		FUNC_P2VAR( RunTimeInfo_s, CANTP, AUTOMATIC) rxRuntimeParam,
+		VAR(FrameType, AUTOMATIC) FlowControlStatus)
 
-//static void SendFlowControlFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, FrameType FlowControlStatus)
-{
+		//static void SendFlowControlFrame(const CanTpRxNSdu_s *rxNSduConfig, RunTimeInfo_s *rxRuntimeParam, FrameType FlowControlStatus)
+		{
 
 	VAR(PduInfoType, AUTOMATIC) txFlowControlData;
 
@@ -1611,23 +1667,23 @@ LOCAL FUNC(void,CANTP_MODLUE) SendFlowControlFrame( FUNC_P2CONST(CanTpRxNSdu_s, 
 	CanTpRunTimeRxData[rxNSduConfig->CanTpRxNSduId].IfBuffer.IFdataPtr = txFlowControlData.SduDataPtr;
 	CanTpRunTimeRxData[rxNSduConfig->CanTpRxNSduId].IfBuffer.IFByteCount = txFlowControlData.SduLength;
 
-	TransmitReqCanIf_Status = CanIf_Transmit(cantp_cainf_FC[rxNSduConfig->CanTpTxFcNPduConfirmationPduId], &txFlowControlData);
+	TransmitReqCanIf_Status = CanIf_Transmit(CanTp_LowerLayerUser_LookUpTable_FC[rxNSduConfig->CanTpTxFcNPduConfirmationPduId], &txFlowControlData);
 	switch(TransmitReqCanIf_Status)
 	{
 	case E_OK :
 		/* [SWS_CanTp_00090] When the transport transmission session is successfully
                              completed, the CanTp module shall call a notification service of the upper layer,
                              PduR_CanTpTxConfirmation(), with the result E_OK.*/
-		PduR_CanTpTxConfirmation(cantp_cainf_FC[rxNSduConfig->CanTpRxNSduId] ,E_OK );
+		PduR_CanTpTxConfirmation(CanTp_UpperLayerUser_LookUpTable_Tx[rxNSduConfig->CanTpRxNSduId] ,E_OK );
 		break;
 	case E_NOT_OK :
 		/* terminate the current transmission connection */
 		/* Note: The Api PduR_CanTpTxConfirmation() shall be called after a transmit
                  cancellation with value E_NOT_OK */
-		PduR_CanTpTxConfirmation(cantp_cainf_FC[rxNSduConfig->CanTpRxNSduId] ,E_NOT_OK );
+		PduR_CanTpTxConfirmation(CanTp_UpperLayerUser_LookUpTable_Tx[rxNSduConfig->CanTpRxNSduId] ,E_NOT_OK );
 		break;
 	}
-}
+		}
 
 /***************************************************************************************************
  * Service name      : PadFrame                                                                    *
@@ -1637,9 +1693,9 @@ LOCAL FUNC(void,CANTP_MODLUE) SendFlowControlFrame( FUNC_P2CONST(CanTpRxNSdu_s, 
  * Return value      : None                                                                        *
  * Description       : Used for the initialization of unused bytes with a certain value            *
  ***************************************************************************************************/
-LOCAL FUNC(void,CANTP_MODLUE) PadFrame (FUNC_P2VAR( PduInfoType, CANTP_MODLUE, AUTOMATIC) PduInfoPtr)
-//static void PadFrame(PduInfoType *PduInfoPtr)
-{
+LOCAL FUNC(void,CANTP) PadFrame (FUNC_P2VAR( PduInfoType, CANTP, AUTOMATIC) PduInfoPtr)
+                                								//static void PadFrame(PduInfoType *PduInfoPtr)
+                                								{
 	VAR(uint8, AUTOMATIC) i =0;
 
 	for (i = PduInfoPtr->SduLength; i < MAX_SEGMENT_DATA_SIZE; i++)
@@ -1647,7 +1703,7 @@ LOCAL FUNC(void,CANTP_MODLUE) PadFrame (FUNC_P2VAR( PduInfoType, CANTP_MODLUE, A
 		PduInfoPtr->SduDataPtr[i] = CANTP_PADDING_BYTE;
 	}
 	PduInfoPtr->SduLength = MAX_SEGMENT_DATA_SIZE;
-}
+                                								}
 
 
 /**************************************************************************************************
@@ -1658,9 +1714,9 @@ LOCAL FUNC(void,CANTP_MODLUE) PadFrame (FUNC_P2VAR( PduInfoType, CANTP_MODLUE, A
  * Return value      : None                                                                       *
  * Description       : Used to initialize the Runtime value that will used in Receiption          *
  **************************************************************************************************/
-LOCAL FUNC(void,CANTP_MODLUE) StartNewReception (FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) rxRuntimeParam)
-//static void StartNewReception(RunTimeInfo_s *rxRuntimeParam)
-{
+LOCAL FUNC(void,CANTP) StartNewReception (FUNC_P2VAR( RunTimeInfo_s, CANTP, AUTOMATIC) rxRuntimeParam)
+                                								//static void StartNewReception(RunTimeInfo_s *rxRuntimeParam)
+                                								{
 	/*[SWS_CanTp_00030] The function CanTp_Init shall initialize all global variables of the module and sets
 	 * all transport protocol connections in a sub-state of CANTP_ON, in which neither segmented transmission
 	 * nor segmented reception are in progress (Rx thread in state CANTP_RX_WAIT and Tx thread in state CANTP_TX_WAIT)*/
@@ -1674,7 +1730,7 @@ LOCAL FUNC(void,CANTP_MODLUE) StartNewReception (FUNC_P2VAR( RunTimeInfo_s, CANT
 	rxRuntimeParam->nextFlowControlCount  = 0;
 	rxRuntimeParam->pdurBufferCount       = 0;
 	rxRuntimeParam->pdurBuffer.SduDataPtr = NULL_PTR;
-}
+                                								}
 
 
 /***************************************************************************************************
@@ -1685,9 +1741,9 @@ LOCAL FUNC(void,CANTP_MODLUE) StartNewReception (FUNC_P2VAR( RunTimeInfo_s, CANT
  * Return value      : None                                                                        *
  * Description       : Used to initialize the Runtime value that will used in transmission         *
  ***************************************************************************************************/
-LOCAL FUNC(void,CANTP_MODLUE) StartNewTransmission (FUNC_P2VAR( RunTimeInfo_s, CANTP_MODLUE, AUTOMATIC) txRuntimeParam)
-//static void StartNewTransmission(RunTimeInfo_s *txRuntimeParam)
-{
+LOCAL FUNC(void,CANTP) StartNewTransmission (FUNC_P2VAR( RunTimeInfo_s, CANTP, AUTOMATIC) txRuntimeParam)
+                                								//static void StartNewTransmission(RunTimeInfo_s *txRuntimeParam)
+                                								{
 	/*[SWS_CanTp_00030] The function CanTp_Init shall initialize all global variables of the module and sets
 	 * all transport protocol connections in a sub-state of CANTP_ON, in which neither segmented transmission
 	 * nor segmented reception are in progress (Rx thread in state CANTP_RX_WAIT and Tx thread in state CANTP_TX_WAIT). (SRS_Can_01075)*/
@@ -1703,7 +1759,7 @@ LOCAL FUNC(void,CANTP_MODLUE) StartNewTransmission (FUNC_P2VAR( RunTimeInfo_s, C
 	txRuntimeParam->pdurBufferCount       = 0;
 	txRuntimeParam->pdurBuffer.SduDataPtr = NULL_PTR;
 
-}
+                                								}
 
 static void ComputeBlockSize(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRuntimeParam, uint8 *BS)
 {
@@ -1732,107 +1788,36 @@ static void ComputeBlockSize(const CanTpRxNSdu_s *rxConfig, RunTimeInfo_s *rxRun
 	/* Checking if the available buffer size is sufficient for transmitting tot*/
 	if( (rxRuntimeParam->Buffersize) >= TotalRemainingBytes)
 	{
-	  if(TotalRemainingBytes % MaxPayload == 0)
-	  {
-	    *BS = TotalRemainingBytes / MaxPayload;
-	  }
-	  else
-	  {
-	    *BS = (TotalRemainingBytes / MaxPayload) + 1;
-
-	    TotalFrameBytes = (*BS) * MaxPayload;
-
-	    if(TotalFrameBytes > rxRuntimeParam->Buffersize)
-	    {
-	      (*BS)--;
-	    }
-	    else
-	    {
-	      /* BS Calculated right */
-	    }
-	  }
-	}
-	else
-	{
-	  *BS = rxRuntimeParam->Buffersize / MaxPayload;
-
-	  if (*BS == 0)
-	  {
-	    *BS = 1;
-	  }
-	}
-}
-
-static Std_ReturnType TransmitFirstAndSingleFrame(PduIdType TxPduId, const PduInfoType* PduInfoPtr)
-{
-	VAR(Std_ReturnType,AUTOMATIC) TransmitRequest_Status = E_NOT_OK;
-	VAR(uint8,AUTOMATIC) MaxPayload ;
-	VAR(FrameType,AUTOMATIC)  Frame ;
-
-
-	CanTpRunTimeTxData[TxPduId].transferTotal          = PduInfoPtr->SduLength;
-
-	CanTpRunTimeTxData[TxPduId].mode                   = CANTP_TX_PROCESSING;
-
-	CanTpRunTimeTxData[TxPduId].IfBuffer.IFByteCount   = 0;
-
-	if ( CanTpTxNSdu[TxPduId].CanTpTxAddressingFormat == CANTP_STANDARD )
-	{
-		MaxPayload = MAX_PAYLOAD_STANDRAD_SF ;
-	}
-	else if ( CanTpTxNSdu[TxPduId].CanTpTxAddressingFormat == CANTP_EXTENDED )
-	{
-		MaxPayload = MAX_PAYLOAD_EXTENDED_SF ;
-	}
-	else
-	{
-		/* Do Nothing */
-	}
-
-	if( CanTpRunTimeTxData[TxPduId].transferTotal <= MaxPayload ) /* Single Frame */
-	{
-		Frame = SINGLE_FRAME ;
-	}
-	else /* First Frame */
-	{
-		Frame = FIRST_FRAME ;
-	}
-	switch(Frame)
-	{
-	case SINGLE_FRAME :
-		CanTpRunTimeTxData[TxPduId].IfBuffer.IFdataPtr[CanTpRunTimeTxData[TxPduId].IfBuffer.IFByteCount++] = ISO15765_TPCI_SF | (CanTpRunTimeTxData[TxPduId].transferTotal);
-		CanTpRunTimeTxData[TxPduId].pdurBuffer.SduLength             = CanTpRunTimeTxData[TxPduId].transferTotal ;
-		CanTpRunTimeTxData[TxPduId].state                            = TX_WAIT_TRANSMIT;
-		TransmitRequest_Status                      = E_OK ;
-		break;
-
-	case  FIRST_FRAME :
-		if ( CanTpTxNSdu[TxPduId].CanTpTxAddressingFormat == CANTP_STANDARD )
+		if(TotalRemainingBytes % MaxPayload == 0)
 		{
-			MaxPayload = MAX_PAYLOAD_STANDRAD_FF ;
-		}
-		else if ( CanTpTxNSdu[TxPduId].CanTpTxAddressingFormat == CANTP_EXTENDED )
-		{
-			MaxPayload = MAX_PAYLOAD_EXTENDED_FF ;
+			*BS = TotalRemainingBytes / MaxPayload;
 		}
 		else
 		{
-			/* Nothing */
+			*BS = (TotalRemainingBytes / MaxPayload) + 1;
+
+			TotalFrameBytes = (*BS) * MaxPayload;
+
+			if(TotalFrameBytes > rxRuntimeParam->Buffersize)
+			{
+				(*BS)--;
+			}
+			else
+			{
+				/* BS Calculated right */
+			}
 		}
-		CanTpRunTimeTxData[TxPduId].IfBuffer.IFdataPtr[CanTpRunTimeTxData[TxPduId].IfBuffer.IFByteCount++] = ISO15765_TPCI_FF | (uint8)((CanTpRunTimeTxData[TxPduId].transferTotal & 0xf00) >> 8);
-		CanTpRunTimeTxData[TxPduId].IfBuffer.IFdataPtr[CanTpRunTimeTxData[TxPduId].IfBuffer.IFByteCount++] = (uint8)(CanTpRunTimeTxData[TxPduId].transferTotal & 0xff);
-		CanTpRunTimeTxData[TxPduId].pdurBuffer.SduLength  =  MaxPayload    ;
-		CanTpRunTimeTxData[TxPduId].state                 = TX_WAIT_TRANSMIT;
-		TransmitRequest_Status                            = E_OK ;
-		break;
-	default:
-		TransmitRequest_Status                            = E_NOT_OK ;
-		break;
-
 	}
-	return TransmitRequest_Status;
-}
+	else
+	{
+		*BS = rxRuntimeParam->Buffersize / MaxPayload;
 
+		if (*BS == 0)
+		{
+			*BS = 1;
+		}
+	}
+}
 
 
 
@@ -1874,7 +1859,7 @@ static void MainFunctionTransmitChannel(const CanTpTxNSdu_s *txConfig, RunTimeIn
 			txRuntime->mode  = CANTP_TX_WAIT;
 
 			/* As per [SWS_CanTp_00204] mentioned above */
-			PduR_CanTpTxConfirmation(cantp_com_copy_tx[txConfig->CanTpTxNSduId], E_NOT_OK);
+			PduR_CanTpTxConfirmation(CanTp_UpperLayerUser_LookUpTable_Tx[txConfig->CanTpTxNSduId], E_NOT_OK);
 		}
 		else if(BUFREQ_E_BUSY == ret)
 		{
@@ -1887,7 +1872,7 @@ static void MainFunctionTransmitChannel(const CanTpTxNSdu_s *txConfig, RunTimeIn
 
 				/* [SWS_CanTp_00204] The CanTp module shall notify the upper layer by calling
 				 * the PduR_CanTpTxConfirmation callback when the transmit request has been completed.*/
-				PduR_CanTpTxConfirmation(cantp_com_copy_tx[txConfig->CanTpTxNSduId], E_NOT_OK);
+				PduR_CanTpTxConfirmation(CanTp_UpperLayerUser_LookUpTable_Tx[txConfig->CanTpTxNSduId], E_NOT_OK);
 			}
 			else
 			{
@@ -1923,7 +1908,7 @@ static void MainFunctionTransmitChannel(const CanTpTxNSdu_s *txConfig, RunTimeIn
 
 			txRuntime->state = IDLE;
 			txRuntime->mode  = CANTP_TX_WAIT;
-			PduR_CanTpTxConfirmation(cantp_com_copy_tx[txConfig->CanTpTxNSduId], E_NOT_OK);
+			PduR_CanTpTxConfirmation(CanTp_UpperLayerUser_LookUpTable_Tx[txConfig->CanTpTxNSduId], E_NOT_OK);
 		}
 
 		break;
@@ -1943,7 +1928,7 @@ static void MainFunctionTransmitChannel(const CanTpTxNSdu_s *txConfig, RunTimeIn
 			txRuntime->mode  = CANTP_TX_WAIT;
 
 			/* As per [SWS_CanTp_00204] mentioned above */
-			PduR_CanTpTxConfirmation(cantp_com_copy_tx[txConfig->CanTpTxNSduId], E_NOT_OK);
+			PduR_CanTpTxConfirmation(CanTp_UpperLayerUser_LookUpTable_Tx[txConfig->CanTpTxNSduId], E_NOT_OK);
 		}
 
 		break;
@@ -1984,7 +1969,7 @@ static void MainFunctionReceiveChannel(const CanTpRxNSdu_s *rxConfig, RunTimeInf
 
 			rxRuntime->state = IDLE;
 			rxRuntime->mode  = CANTP_RX_WAIT;
-			PduR_CanTpRxIndication(cantp_com_rx_or_copy[rxConfig->CanTpRxNSduId], E_NOT_OK);
+			PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxConfig->CanTpRxNSduId], E_NOT_OK);
 		}
 		break;
 	}
@@ -2001,7 +1986,7 @@ static void MainFunctionReceiveChannel(const CanTpRxNSdu_s *rxConfig, RunTimeInf
 
 			rxRuntime->state = IDLE;
 			rxRuntime->mode  = CANTP_RX_WAIT;
-			PduR_CanTpRxIndication(cantp_com_rx_or_copy[rxConfig->CanTpRxNSduId], E_NOT_OK);
+			PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxConfig->CanTpRxNSduId], E_NOT_OK);
 		}
 
 		break;
@@ -2035,7 +2020,7 @@ static void MainFunctionReceiveChannel(const CanTpRxNSdu_s *rxConfig, RunTimeInf
 				/* as per [SWS_CanTp_00223] mentioned above */
 
 				/* Receive process is ended with failure */
-				PduR_CanTpRxIndication(cantp_com_rx_or_copy[rxConfig->CanTpRxNSduId], E_NOT_OK);
+				PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxConfig->CanTpRxNSduId], E_NOT_OK);
 				rxRuntime->state = IDLE;
 				rxRuntime->mode  = CANTP_RX_WAIT;
 
@@ -2053,7 +2038,7 @@ static void MainFunctionReceiveChannel(const CanTpRxNSdu_s *rxConfig, RunTimeInf
 			Request->SduDataPtr   = NULL_PTR;
 			Request->SduLength    = 0;
 
-			PduR_CanTpCopyRxData(cantp_com_rx_or_copy[rxConfig->CanTpRxNSduId], Request, &rxRuntime->Buffersize);
+			PduR_CanTpCopyRxData(CanTp_UpperLayerUser_LookUpTable_Rx[rxConfig->CanTpRxNSduId], Request, &rxRuntime->Buffersize);
 
 			/* Assign 'NextBlock' with the next block information which in stored IFdata, IFByteCount*/
 			NextBlock->SduDataPtr = rxRuntime->IfBuffer.IFdataPtr;
@@ -2067,7 +2052,7 @@ static void MainFunctionReceiveChannel(const CanTpRxNSdu_s *rxConfig, RunTimeInf
 				 * SWS_CanTp_00222), the CanTp module shall send a Flow Control N-PDU with ClearToSend status (FC(CTS))
 				 * and shall then expect the reception of Consecutive Frame N-PDUs.*/
 
-				ret = PduR_CanTpCopyRxData(cantp_com_rx_or_copy[rxConfig->CanTpRxNSduId], NextBlock, &rxRuntime->Buffersize);
+				ret = PduR_CanTpCopyRxData(CanTp_UpperLayerUser_LookUpTable_Rx[rxConfig->CanTpRxNSduId], NextBlock, &rxRuntime->Buffersize);
 				switch(ret)
 				{
 				case BUFREQ_OK:
@@ -2086,7 +2071,7 @@ static void MainFunctionReceiveChannel(const CanTpRxNSdu_s *rxConfig, RunTimeInf
 					}
 					else /* Receive process is ended successfully */
 					{
-						PduR_CanTpRxIndication(cantp_com_rx_or_copy[rxConfig->CanTpRxNSduId], E_OK);              /* CanTp_00214 */
+						PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxConfig->CanTpRxNSduId], E_OK);              /* CanTp_00214 */
 						rxRuntime->state = IDLE;
 						rxRuntime->mode  = CANTP_RX_WAIT;
 					}
@@ -2098,7 +2083,7 @@ static void MainFunctionReceiveChannel(const CanTpRxNSdu_s *rxConfig, RunTimeInf
 				{
 					/* Receive process is ended with failure */
 
-					PduR_CanTpRxIndication(cantp_com_rx_or_copy[rxConfig->CanTpRxNSduId], E_NOT_OK);        /* CanTp_00214 */
+					PduR_CanTpRxIndication(CanTp_UpperLayerUser_LookUpTable_Rx[rxConfig->CanTpRxNSduId], E_NOT_OK);        /* CanTp_00214 */
 					rxRuntime->state = IDLE;
 					rxRuntime->mode  = CANTP_RX_WAIT;
 
