@@ -83,7 +83,9 @@ LOCAL FUNC(void,CANTP) HandleNextTxFrame( CONSTP2VAR(CanTpTxNSdu_s, CANTP, AUTOM
 LOCAL FUNC(BufReq_ReturnType,CANTP) SendNextTxFrame( CONSTP2VAR(CanTpTxNSdu_s, CANTP, AUTOMATIC) txConfig,
                                                     P2VAR(RunTimeInfo_s, CANTP, AUTOMATIC) txRuntime );
 
+LOCAL FUNC(void,CANTP) StartNewReception (P2VAR( RunTimeInfo_s, CANTP, AUTOMATIC) rxRuntimeParam);
 
+LOCAL FUNC(void,CANTP) StartNewTransmission (P2VAR( RunTimeInfo_s, CANTP, AUTOMATIC) txRuntimeParam);
 
 /* Global Runtime Object */
 VAR(RunTimeInfo_s, CANTP_VAR_CLEARED) CanTpRunTimeTxData[NUMBER_OF_TXNPDU];
