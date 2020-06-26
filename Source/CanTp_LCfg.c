@@ -1,6 +1,5 @@
 
-#include "Platform_Types.h"
-#include "Compiler.h"
+
 #include "Std_Types.h"
 
 
@@ -10,86 +9,80 @@
 
 const CanTpTxNSdu_s CanTpTxNSdu[] =
 {
- {
-  .CanTpNas 			      = 				8,
-  .CanTpNbs 				  = 				9,
-  .CanTpNcs 				  = 				10,
-  .CanTpTc			      = 				TRUE,
-  .CanTpTxAddressingFormat  =  			    CANTP_STANDARD,
-  .CanTpTxNSduId 			  =					0,
-  .CanTpTxPaddingActivation = 				CANTP_OFF,
-  .CanTpTxTaType 			  = 				CANTP_PHYSICAL,
+		{
+				.CanTpNas                       = 6              ,
+				.CanTpNbs                       = 20             ,
+				.CanTpNcs                       = 10             ,
+				.CanTpTc                        = TRUE           ,
+				.CanTpTxAddressingFormat        = CANTP_STANDARD ,
+				.CanTpTxNSduId                  = 0              ,
+				.CanTpTxPaddingActivation       = CANTP_OFF      ,
+				.CanTpTxTaType                  = CANTP_PHYSICAL ,
+				.CanTpTxNPduConfirmationPduId   = 0              ,
+				.CanTpRxFcNPduId                = 0		         ,
+		},
 
-
- },
-
- {
-  .CanTpNas				  =					 8,
-  .CanTpNbs 				  =					 9,
-  .CanTpNcs 				  =					 10,
-  .CanTpTc				  =					 TRUE,
-  .CanTpTxAddressingFormat  =  				 CANTP_STANDARD,
-  .CanTpTxNSduId            =					 1,
-  .CanTpTxPaddingActivation =  				 CANTP_OFF,
-  .CanTpTxTaType 			  =					 CANTP_PHYSICAL,
-
-
- },
-
+		{
+				.CanTpNas                       = 6              ,
+				.CanTpNbs                       = 20             ,
+				.CanTpNcs                       = 10             ,
+				.CanTpTc                        = TRUE           ,
+				.CanTpTxAddressingFormat        = CANTP_STANDARD ,
+				.CanTpTxNSduId                  = 1              ,
+				.CanTpTxPaddingActivation       = CANTP_OFF      ,
+				.CanTpTxTaType                  = CANTP_PHYSICAL ,
+				.CanTpTxNPduConfirmationPduId   = 1              ,
+				.CanTpRxFcNPduId                = 1		         ,
+		},
 };
 
 
 const CanTpRxNSdu_s CanTpRxNSdu[] =
 {
- {
-  //.CanTpRxNSdu				 = 				 0,    // why is this written here ??? do you have any idea ??
-  .CanTpBs					 =				 10,
-  .CanTpNar					 = 				10,
-  .CanTpNbr					 = 				20,
-  .CanTpNcr 					 = 				30,
-  .CanTpRxAddressingFormat 	 = 				CANTP_STANDARD,    // THIS IS AN ENUMERATOR IT CAN HAVE ONE	OF THE FOLLOWING VALUES {CANTP_EXTENDED , CANTP_MIXED , CANTP_MIXED29BIT , CANTP_NORMALFIXED ,  CANTP_STANDARD}
-  .CanTpRxNSduId 				 =			 	0,     //  id =0
-  .CanTpRxPaddingActivation 	 =				CANTP_OFF,		 // THIS IS AN ENUMERATOR IT AN HAVE ONEOF THE FOLLOWING VALUES {CANTP_OFF, CANTP_ON}
-  .CanTpRxTaType				 =				CANTP_PHYSICAL,            // you can put either one of these values on the ENUM {CANTP_FUNCTIONAL, CANTP_PHYSICAL}
-  .CanTpRxWftMax				 = 				5,
-  .CanTpSTmin					 = 				TRUE,
-
-
- },
-
- {
-  //.CanTpRxNSdu 				=				 0,    // why is this written here ??? do you have any idea ??
-  .CanTpBs 					= 				 20,
-  .CanTpNar 					=				3,
-  .CanTpNbr				    = 				4,
-  .CanTpNcr					= 				6,
-  .CanTpRxAddressingFormat    =  				CANTP_STANDARD,    // THIS IS AN ENUMERATOR IT CAN HAVE ONE	OF THE FOLLOWING VALUES {CANTP_EXTENDED , CANTP_MIXED , CANTP_MIXED29BIT , CANTP_NORMALFIXED ,  CANTP_STANDARD}
-  .CanTpRxNSduId 				= 				1,
-  .CanTpRxPaddingActivation   = 				CANTP_ON,		 // THIS IS AN ENUMERATOR IT AN HAVE ONEOF THE FOLLOWING VALUES {CANTP_OFF, CANTP_ON}
-
-  .CanTpRxTaType				= 				CANTP_PHYSICAL,            // you can put either one of these values on the ENUM {CANTP_FUNCTIONAL, CANTP_PHYSICAL}
-  .CanTpRxWftMax				= 				5,
-  .CanTpSTmin 				= 				TRUE,
-
-
- }
-
+		{
+				.CanTpBs                      	 = 10             ,
+				.CanTpSTmin                   	 = 3              ,
+				.CanTpRxWftMax                 	 = 5              ,
+				.CanTpNar                     	 = 5              ,
+				.CanTpNbr                        = 10             ,
+				.CanTpNcr                        = 20             ,
+				.CanTpRxAddressingFormat         = CANTP_STANDARD ,
+				.CanTpRxNSduId                   = 0              ,
+				.CanTpRxNPduId                   = 0              ,
+				.CanTpRxPaddingActivation        = CANTP_OFF      ,
+				.CanTpRxTaType                   = CANTP_PHYSICAL ,
+				.CanTpTxFcNPduConfirmationPduId  = 2              ,
+		},
+		{
+				.CanTpBs                      	 = 20             ,
+				.CanTpSTmin                   	 = 3              ,
+				.CanTpRxWftMax                	 = 5              ,
+				.CanTpNar                     	 = 5              ,
+				.CanTpNbr                        = 10             ,
+				.CanTpNcr                        = 20             ,
+				.CanTpRxAddressingFormat         = CANTP_STANDARD ,
+				.CanTpRxNSduId                   = 1              ,
+				.CanTpRxNPduId                   = 1              ,
+				.CanTpRxPaddingActivation        = CANTP_ON       ,
+				.CanTpRxTaType                   = CANTP_PHYSICAL ,
+				.CanTpTxFcNPduConfirmationPduId  = 3              ,
+		}
 };
 
 
 
 ChannelInfo_s ChannelInfo[] =
 {
- {
-  .Mode         	 =			 CANTP_MODE_FULL_DUPLEX,  // it can also take this value (CANTP_MODE_HALF_DUPLEX)
-  .StIdx			 = 				 0,
-  .Length			 = 				 1,
- },
- {
-  .Mode            =           CANTP_MODE_FULL_DUPLEX,  // it can also take this value (CANTP_MODE_HALF_DUPLEX)
-  .StIdx           =               1,
-  .Length          =               1,
- }
+		{
+				.Mode         	 =			 CANTP_MODE_FULL_DUPLEX ,
+				.StIdx			 = 				 0                  ,
+				.Length			 = 				 1                  ,
+		},
+		{
+				.Mode            =           CANTP_MODE_FULL_DUPLEX ,
+				.StIdx           =               1                  ,
+				.Length          =               1                  ,
+		}
 };
 
 
