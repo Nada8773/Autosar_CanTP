@@ -1,13 +1,10 @@
 
 
-#include "Std_Types.h"
-
-
 #include "ComStack_Types.h"
 #include "CanTp_Types.h"
 #include "CanTp_Cfg.h"
 
-const CanTpTxNSdu_s CanTpTxNSdu[] =
+const CanTpTxNSdu_s CanTpTxNSdu[NUMBER_OF_TXNPDU] =
 {
 		{
 				.CanTpNas                       = 6              ,
@@ -37,7 +34,7 @@ const CanTpTxNSdu_s CanTpTxNSdu[] =
 };
 
 
-const CanTpRxNSdu_s CanTpRxNSdu[] =
+const CanTpRxNSdu_s CanTpRxNSdu[NUMBER_OF_RXNPDU] =
 {
 		{
 				.CanTpBs                      	 = 10             ,
@@ -71,7 +68,7 @@ const CanTpRxNSdu_s CanTpRxNSdu[] =
 
 
 
-ChannelInfo_s ChannelInfo[] =
+ChannelInfo_s ChannelInfo[MAX_CHANNEL_COUNT] =
 {
 		{
 				.Mode         	 =			 CANTP_MODE_FULL_DUPLEX ,
