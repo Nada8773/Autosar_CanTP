@@ -29,15 +29,14 @@ typedef struct
 
 /**************************** AUTOSAR-Compliant APIs' Prototypes ******************************************/
 
-void CanTp_Init(const CanTp_ConfigType* CfgPtr);
-void CanTp_GetVersionInfo(Std_VersionInfoType* versioninfo);
-void CanTp_Shutdown(void);
-Std_ReturnType CanTp_Transmit(PduIdType TxPduId, const PduInfoType* PduInfoPtr);
-Std_ReturnType CanTp_CancelTransmit(PduIdType TxPduId);
-Std_ReturnType CanTp_CancelReceive(PduIdType RxPduId);
-Std_ReturnType CanTp_ChangeParameter(PduIdType id, TPParameterType parameter, uint16 value);
-Std_ReturnType CanTp_ReadParameter(PduIdType id, TPParameterType parameter, uint16* value);
-void CanTp_MainFunction(void);
+FUNC(void,CANTP) CanTp_Init(CONSTP2VAR(CanTp_ConfigType, CANTP, AUTOMATIC) CfgPtr);
+
+FUNC(void,CANTP) CanTp_Shutdown(void);
+
+FUNC(Std_ReturnType,CANTP) CanTp_Transmit( VAR(PduIdType,AUTOMATIC) TxPduId,
+		                                          CONSTP2VAR(PduInfoType, CANTP, AUTOMATIC) PduInfoPtr);
+FUNC(void,CANTP) CanTp_MainFunction(void);
+
 
 
 #endif /* CANTP_H_ */

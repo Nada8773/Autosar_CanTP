@@ -18,8 +18,8 @@
 #ifndef CANTP_CBK_H_
 #define CANTP_CBK_H_
 
+FUNC(void,CANTP) CanTp_TxConfirmation( VAR(PduIdType,AUTOMATIC) TxPduId, VAR(Std_ReturnType,AUTOMATIC) result );
+FUNC(void,CANTP) CanTp_RxIndication( VAR(PduIdType,AUTOMATIC) RxPduId, CONSTP2VAR(PduInfoType, CANTP, AUTOMATIC) PduInfoPtr);
 
-void CanTp_RxIndication(PduIdType RxPduId, const PduInfoType* PduInfoPtr);
-void CanTp_TxConfirmation(PduIdType TxPduId, Std_ReturnType result);
 
 #endif /* CANTP_CBK_H_ */
