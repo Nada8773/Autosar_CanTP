@@ -19,6 +19,8 @@
 
 #define NUMBER_OF_TXNPDU                           2
 #define NUMBER_OF_RXNPDU                           2
+#define MAX_CHANNEL_COUNT                          2
+
 
 #define CANTP_PADDING_BYTE                         0U
 #define DET_ERROR_STATUS                           STD_OFF
@@ -36,10 +38,8 @@
 #define MAX_SEGMENT_DATA_SIZE       64U
 #endif
 
-#define CANTP_NSDU_CONFIG_LIST_SIZE_RX  2
-#define CANTP_NSDU_CONFIG_LIST_SIZE_TX  2
 
-#define MAX_CHANNEL_COUNT               2
+
 
 #define MAIN_FUNCTION_PERIOD_SECONDS    1
 
