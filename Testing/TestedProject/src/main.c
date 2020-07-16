@@ -1,8 +1,8 @@
 /*
  * main.c
  */
-#pragma diag_push
-#pragma CHECK_MISRA("none")
+//#pragma diag_push
+//#pragma CHECK_MISRA("none")
 
 
 #include "Std_Types.h"
@@ -37,14 +37,14 @@
 #include "CanTp.h"
 
 /* Task Priority*/
-#define TASK1_PRIORITY      (4)
-#define TASK2_PRIORITY      (5)
+#define MAIN_PRIORITY      	   (2)
+#define TRANSMIT_PRIORITY      (1)
 
 
 
 /* Private Function Prototype */
-static void Task_1( void *pvParameters );
-static void Task_2( void *pvParameters );
+static void MainTask( void *pvParameters );
+static void TransmitTask( void *pvParameters );
 
 
 
@@ -90,10 +90,10 @@ main(void)
     CanTp_Init(NULL_PTR);
 
     /* Create Task 1 */
-    xTaskCreate( Task_1, "Task_1", 1000, NULL, TASK1_PRIORITY, NULL );
+    xTaskCreate( MainTask, "MainTask", 1000, NULL, MAIN_PRIORITY, NULL );
 
     /* Create Task 2 */
-    xTaskCreate( Task_2, "Task_2", 1000, NULL, TASK2_PRIORITY, NULL );
+    xTaskCreate( TransmitTask, "TransmitTask", 1000, NULL, TRANSMIT_PRIORITY, NULL );
 
 
     vTaskStartScheduler();
@@ -104,7 +104,7 @@ main(void)
 }
 
 
-static void Task_1( void *pvParameters ) // every 1 sec
+static void MainTask( void *pvParameters ) // every 1 sec
 {
 
     while(1)
@@ -115,22 +115,26 @@ static void Task_1( void *pvParameters ) // every 1 sec
     }
 }
 
-//TASK(T2) // every 5 sec
-static void Task_2( void *pvParameters )
+static void TransmitTask( void *pvParameters )// every 5 sec
 {
-    uint8 Array[]= {'I','T','I','_','4','0','_','C','a','n','T','p','_','T','e','a','m'};
+
+    uint8 Array[]= {'I','T','I','_','4','0','_','C','A','N','T','P','_','T','e','a','m'};
     PduInfoType Frame;
 
     Frame.SduDataPtr = Array;
     Frame.SduLength=17;
 
-
     while(1)
     {
         if (flag == 1)
         {
-            /* Transmit */
+            /* Transmit **********/
             CanTp_Transmit((uint16)1, &Frame);
+
+            /* Receive ***********/
+
+            /*CanTp_RxIndication(1,&FF);
+           CanTp_RxIndication(1,&CF);*/
 
             flag = 0;
         }

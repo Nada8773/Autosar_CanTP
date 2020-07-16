@@ -205,15 +205,12 @@ typedef struct
 /**************** RunTimeInfo Structure ****************/
 typedef struct
 {
-  
     uint16                        nextFlowControlCount;
     uint16                        framesHandledCount;
     uint32                        stateTimeoutCount;
     uint8                         STmin;
     uint8                         BS;
-    uint32                        NasNarTimeoutCount;
     TransferStateTypes            state;
-    uint32                        pdurBufferCount;  //i see no significance for this parameter
     uint32                        transferTotal;
     uint32                        transferCount;
     uint32                        availableDataSize;

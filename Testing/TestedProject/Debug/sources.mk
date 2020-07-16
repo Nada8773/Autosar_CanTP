@@ -27,9 +27,9 @@ CPP_DEPS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
-ThirdParty/FreeRTOS/Source \
-ThirdParty/FreeRTOS/Source/portable/GCC/ARM_CM3 \
-ThirdParty/FreeRTOS/Source/portable/MemMang \
+ThirdParty \
+ThirdParty/portable/GCC/ARM_CM3 \
+ThirdParty/portable/MemMang \
 src \
 system/src/cmsis \
 system/src/cortexm \

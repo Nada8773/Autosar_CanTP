@@ -17,6 +17,7 @@
 #ifndef DET_H_
 #define DET_H_
 
+#include "diag/Trace.h"
 #include "Std_Types.h"
 
 /**************************** Functions Prototype ******************************************/

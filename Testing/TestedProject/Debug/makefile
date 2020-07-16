@@ -14,9 +14,9 @@ RM := rm -rf
 -include system/src/cortexm/subdir.mk
 -include system/src/cmsis/subdir.mk
 -include src/subdir.mk
--include ThirdParty/FreeRTOS/Source/portable/MemMang/subdir.mk
--include ThirdParty/FreeRTOS/Source/portable/GCC/ARM_CM3/subdir.mk
--include ThirdParty/FreeRTOS/Source/subdir.mk
+-include ThirdParty/portable/MemMang/subdir.mk
+-include ThirdParty/portable/GCC/ARM_CM3/subdir.mk
+-include ThirdParty/subdir.mk
 -include subdir.mk
 -include objects.mk
 
@@ -51,38 +51,38 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 SECONDARY_FLASH += \
-STM32_RTOS_LCD.hex \
+CanTp-RTOS_STM32Fx.hex \
 
 SECONDARY_SIZE += \
-STM32_RTOS_LCD.siz \
+CanTp-RTOS_STM32Fx.siz \
 
 
 # All Target
-all: STM32_RTOS_LCD.elf secondary-outputs
+all: CanTp-RTOS_STM32Fx.elf secondary-outputs
 
 # Tool invocations
-STM32_RTOS_LCD.elf: $(OBJS) $(USER_OBJS)
+CanTp-RTOS_STM32Fx.elf: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: Cross ARM GNU C++ Linker'
-	arm-none-eabi-g++ -mcpu=cortex-m3 -mthumb -Og -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -ffreestanding -fno-move-loop-invariants -Wall -Wextra  -g3 -T mem.ld -T libs.ld -T sections.ld -nostartfiles -Xlinker --gc-sections -L"../ldscripts" -Wl,-Map,"STM32_RTOS_LCD.map" --specs=nano.specs -o "STM32_RTOS_LCD.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+	arm-none-eabi-g++ -mcpu=cortex-m3 -mthumb -Og -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -ffreestanding -fno-move-loop-invariants -Wall -Wextra  -g3 -T mem.ld -T libs.ld -T sections.ld -nostartfiles -Xlinker --gc-sections -L"../ldscripts" -Wl,-Map,"CanTp-RTOS_STM32Fx.map" --specs=nano.specs -o "CanTp-RTOS_STM32Fx.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
-STM32_RTOS_LCD.hex: STM32_RTOS_LCD.elf
+CanTp-RTOS_STM32Fx.hex: CanTp-RTOS_STM32Fx.elf
 	@echo 'Invoking: Cross ARM GNU Create Flash Image'
-	arm-none-eabi-objcopy -O ihex "STM32_RTOS_LCD.elf"  "STM32_RTOS_LCD.hex"
+	arm-none-eabi-objcopy -O ihex "CanTp-RTOS_STM32Fx.elf"  "CanTp-RTOS_STM32Fx.hex"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-STM32_RTOS_LCD.siz: STM32_RTOS_LCD.elf
+CanTp-RTOS_STM32Fx.siz: CanTp-RTOS_STM32Fx.elf
 	@echo 'Invoking: Cross ARM GNU Print Size'
-	arm-none-eabi-size --format=berkeley "STM32_RTOS_LCD.elf"
+	arm-none-eabi-size --format=berkeley "CanTp-RTOS_STM32Fx.elf"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(CC_DEPS)$(C++_DEPS)$(OBJS)$(C_UPPER_DEPS)$(CXX_DEPS)$(SECONDARY_FLASH)$(SECONDARY_SIZE)$(ASM_DEPS)$(S_UPPER_DEPS)$(C_DEPS)$(CPP_DEPS) STM32_RTOS_LCD.elf
+	-$(RM) $(CC_DEPS)$(C++_DEPS)$(OBJS)$(C_UPPER_DEPS)$(CXX_DEPS)$(SECONDARY_FLASH)$(SECONDARY_SIZE)$(ASM_DEPS)$(S_UPPER_DEPS)$(C_DEPS)$(CPP_DEPS) CanTp-RTOS_STM32Fx.elf
 	-@echo ' '
 
 secondary-outputs: $(SECONDARY_FLASH) $(SECONDARY_SIZE)

@@ -252,15 +252,15 @@ pHandler __isr_vectors[] =
       0,                                        // Reserved
       0,                                        // Reserved
       0,                                        // Reserved
-      SVC_Handler,                              // SVCall handler
+	  vPortSVCHandler,                              // SVCall handler
 #if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
       DebugMon_Handler,                         // Debug monitor handler
 #else
       0,                                        // Reserved
 #endif
       0, // Reserved
-      PendSV_Handler, // The PendSV handler
-      SysTick_Handler, // The SysTick handler
+	  xPortPendSVHandler, // The PendSV handler
+	  xPortSysTickHandler, // The SysTick handler
 
       // ----------------------------------------------------------------------
       // Chip Level - STM32F10x

@@ -62,12 +62,12 @@ extern "C"
 #endif
 
   extern void
-  SVC_Handler (void);
+  vPortSVCHandler (void);
 
   extern void
-  PendSV_Handler (void);
+  xPortPendSVHandler (void);
   extern void
-  SysTick_Handler (void);
+  xPortSysTickHandler (void);
 
   // Exception Stack Frame of the Cortex-M3 or Cortex-M4 processor.
   typedef struct

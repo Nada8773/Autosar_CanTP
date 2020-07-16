@@ -1,6 +1,8 @@
 #ifndef _PLATFORM_TYPES_H_
 #define _PLATFORM_TYPES_H_
 
+
+
 /*****************************************************************************/
 /* AUTOSAR Release: 4.3.1                                                      */
 /*****************************************************************************/
@@ -32,7 +34,7 @@
 /*****************************************************************************/
 #define CPU_BIT_ORDER       LSB_FIRST
 
-#ifdef __little_endian__
+#if __little_endian__
   #define CPU_BYTE_ORDER    LOW_BYTE_FIRST
 #else
   #define CPU_BYTE_ORDER    HIGH_BYTE_FIRST
@@ -53,7 +55,7 @@ typedef unsigned long long	uint64;
 typedef signed char         sint8;
 typedef signed short        sint16;
 typedef signed int          sint32;
-typedef signed long long	sint64;
+/**typedef signed long long	uint64;*/
 
 typedef unsigned int        uint8_least;
 typedef unsigned int        uint16_least;
@@ -65,5 +67,6 @@ typedef signed int          sint32_least;
 
 typedef float               float32;
 typedef double              float64;
+
 
 #endif /* _PLATFORM_TYPES_H_ */
